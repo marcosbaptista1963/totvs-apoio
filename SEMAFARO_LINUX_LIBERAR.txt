@@ -1,0 +1,2 @@
+#Semaforos Linux
+sysctl -w kernel.sem="512 256000 256 1024"

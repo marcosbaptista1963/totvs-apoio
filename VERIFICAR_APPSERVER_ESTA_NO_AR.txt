@@ -1,0 +1,16 @@
+DEF VAR happserver AS HANDLE NO-UNDO.
+CREATE SERVER happserver.
+
+
+
+happserver:CONNECT("-AppService totvs-prod-001 -H 192.168.6.45 -S 5162").
+
+
+
+MESSAGE happserver:CONNECTED()
+VIEW-AS ALERT-BOX INFO BUTTONS OK.
+happserver:DISCONNECT() NO-ERROR.
+
+
+
+DELETE OBJECT happserver.

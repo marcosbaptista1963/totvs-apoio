@@ -1,0 +1,1 @@
+find . | xargs grep -s -a -i 20931 | cut -d : -f 1 | uniq > mm

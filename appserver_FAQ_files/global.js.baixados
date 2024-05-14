@@ -1,0 +1,1663 @@
+// Autor: Rodrigo Sombrio
+// Arquivo migrado para o public/javascript/script.js no middleware do CST
+// Global.js
+console.log('AMBIENTE:', CST_CONFIGS.env);
+var usarBC = CST_CONFIGS.baseAtiva || false, $url, $requestUrl;
+var requestUrl,
+	brandsResult,
+	brandsUrls;
+
+var MASCARAS =
+{
+	'cpf': '000.000.000-00',
+	'cnpj': 'AA.AAA.AAA/AAAA-AA',
+	'cep': '00000-000'
+};
+
+var currentConteudo;
+var haveAlerts = false;
+var DADOS_SESSAO =
+{
+	'dados_cliente':
+	{
+		'codigo_totvs': '',
+		'empresa': '01',              // VALOR FIXADO EM '01', CONFORME DOCUMENTACAO - ONDA 4 - AUTOATENDIMENTO
+		'filial': '00',               // VALOR FIXADO EM '00', CONFORME DOCUMENTACAO - ONDA 4 - AUTOATENDIMENTO
+		'loja': '',
+		'razao_social': '',
+		'cnpj': ''
+	},
+
+	'user': null,
+	'organizations': [],
+	'active_organization': null,
+	'current_locale': {},
+	'locales': [],
+	'traducoes': []
+};
+
+var loadOptions =
+{
+	theme: 'light',
+	message: 'Carregando...',
+	stoppable: false,
+	zIndex: 99,
+	shownClass: 'waiting-cursor'
+};
+
+var HelpCenter = HelpCenter || {};
+
+function redirectAfterLogout () {
+	var win = window.open('https://totvscst.zendesk.com/access/logout', '_self');
+	win.onload = function () { window.location.assign("https://www.totvs.com"); };
+}
+
+// sobreescrevendo funcao de loading
+$.fn.loading = function (options) {
+	var stop = typeof options == 'string' && (options.toLowerCase() == 'stop');
+	options = typeof options == 'string' || !options ? {} : options;
+	var element = $('body');
+	var loaderPanel = element.find('#cst-main-loader');
+
+	if (stop) {
+		loaderPanel.fadeOut(150);
+	}
+	else {
+		loaderPanel.fadeIn(150);
+	}
+}
+
+
+function hcLoading (options) {
+	var stop = typeof options == 'string' && (options.toLowerCase() == 'stop');
+	options = typeof options == 'string' || !options ? {} : options;
+	var element = $('body');
+	var loaderPanel = element.find('#cst-main-loader');
+
+	if (stop) {
+		loaderPanel.fadeOut(150);
+	}
+	else {
+		loaderPanel.fadeIn(150);
+	}
+}
+
+
+if (typeof String.prototype.endsWith !== 'function') {
+	String.prototype.endsWith = function (suffix) {
+		return this.indexOf(suffix, this.length - suffix.length) !== -1;
+	};
+}
+
+var homePage = 'home';
+
+var check_redirect_url = CST_CONFIGS.env == 'homolog' ? CST_CONFIGS.homolog_url : CST_CONFIGS.prod_url;
+var redirectToHome = [
+	check_redirect_url + '/hc',
+	check_redirect_url + '/hc/pt-br',
+	check_redirect_url + '/hc/en-us',
+	check_redirect_url + '/hc/es',
+]
+for (var i = 0; i < redirectToHome.length; i++) {
+	var a = redirectToHome[i].split(",")
+	var achou = false;
+	for (var j = 0; j < a.length; j++) {
+		if (window.location.href === a[j] || window.location.href === (a[j] + '/')) {
+			window.location.href = a[j] + '/#home';
+			achou = true;
+			break;
+		}
+		if (achou) {
+			break;
+		}
+	}
+}
+
+//redirect temporario para o https://cstsandbox.zendesk.com/hc/pt-br?flash_digest=aabfe204d127b90d70feddf41efe2d2129ef277f quando logado como usuario final
+if (window.location.href.includes('?flash_digest=')) {
+	var redirect_identity_url = localStorage.getItem('restricted_redirect') || null;
+	if (redirect_identity_url && redirect_identity_url != '') {
+		localStorage.removeItem('restricted_redirect');
+		window.location.href = 'https://' + redirect_identity_url;
+	} else {
+		window.location.href = window.location.href.substring(0, window.location.href.indexOf('?flash_digest='));
+	}
+}
+
+//redirect do erro da tela de solicitacoes
+if (window.location.href.includes('screen=solicitacoes') && window.location.href.indexOf('/#solicitacoes') < 0 &&
+	window.location.href.indexOf('#/solicitacoes') < 0) {
+	window.location.href = window.location.href + '/#solicitacoes';
+}
+
+function RedirectUserToLogin (currentHost = false) {
+
+	var white_list = CST_CONFIGS.url_white_list || [];
+	var urlRedirect = window.location.href;
+	var url = CST_CONFIGS.env == 'prod' ? CST_CONFIGS.prod_url : CST_CONFIGS.homolog_url[1];
+	var redirectToLogin = true;
+
+	if (!HelpCenter || !HelpCenter.user || !HelpCenter.user.email) {
+		//checar pagina para redirecionamento
+		for (let i = 0; i < white_list.length; i++) {
+			if (urlRedirect.includes(white_list[i])) {
+				redirectToLogin = false;
+				break;
+			}
+		}
+
+		//tratamento para redirecionar
+		if (redirectToLogin) {
+
+			/**
+			 * Tratamento para redirecionar na Marca correta de acordo com o 
+			 * formulário de Abertura de Solicitações se currentHost == true 
+			 * */
+			if (currentHost) {
+				url = '/hc/restricted?return_to=' + urlRedirect;
+			} else {
+				url += '/hc/restricted?return_to=' + urlRedirect;
+			}
+			localStorage.setItem('restricted_redirect', urlRedirect.replace('https://', ''));
+			window.location.href = url;
+		}
+	} else {
+		redirectToLogin = false;
+	}
+
+	return redirectToLogin;
+}
+
+$(function () {
+	var main = $('body');
+	var header = $('#cst-header');
+	var conteudo = $('#cst-conteudo');
+
+	header.closeAllDropdowns = function () {
+		// fecha dropdowns do menu superior
+		header.find('.navbar-menu-item.drop-down').removeClass('expanded');
+		header.find('.navbar-menu-item.drop-down').find('.menu-item-options').fadeOut('fast');
+
+		// fecha painel de notificacoes
+		header.find('.notificacoes-container').fadeOut('fast').removeClass('visible');
+
+		// fecha painel das infos do usuario
+		var popup = header.find('.user-info-popup');
+		popup.fadeOut(300, function () {
+			popup.removeClass('visible');
+			popup.find('.user-info-popup-container').removeClass('razao-social-selector-aberto');
+		});
+		header.find('.user-info-dropdown').removeClass('active');
+
+		//fecha combo de idiomas
+		$('#languages-combobox').find('.items-container').addClass('hidden');
+
+		$('body').off('click', header.closeAllDropdowns);
+	}
+
+	//SEARCH
+	main.delegate("#txt-search", 'focus', function () {
+		var searchContainer = $(this).closest('.search-container');
+		var resultsContainer = searchContainer.find('.search-results-container');
+
+		if (!resultsContainer.is(':visible')) {
+			header.closeAllDropdowns();
+			resultsContainer.fadeIn('fast');
+		}
+	}).delegate('#txt-search', 'blur', function () {
+		var resContainer = main.find('.search-container').find('.search-results-container');
+		resContainer.fadeOut('fast');
+	});
+
+
+	main.delegate('.search-bar .search-icon', 'click', function () {
+		var searchString = $('#txt-search').val();
+		goToSearch(searchString);
+	});
+
+	var searchKeyupTimeout;
+	main.delegate('#txt-search', 'keyup', function (e) {
+		var searchString = $(this).val();
+		if (e.keyCode === 13) {
+			goToSearch(searchString);
+		}
+		else {
+			clearTimeout(searchKeyupTimeout);
+			searchKeyupTimeout = setTimeout(function () {
+				getSearchResults(searchString, function (response) {
+					var results = response.results || [];
+					var resultsHtml = '';
+					if (results.length == 0) {
+						resultsHtml = '<li class="sem-sugestoes"><a><span>Sem sugestões</span></a></li>';
+					}
+
+					for (var i = 0; i < results.length; i++) {
+						var title = results[i].title.replace(/"/g, '');
+						var onclick = "goToSearch('" + title + "');";
+						resultsHtml += '<li class="search-sugestao"><a onclick="' + onclick + '"><span>' + title + '</span></a></li>';
+					}
+
+					main.find('.search-container').find('.search-results-container').find('ul').html(resultsHtml);
+					main.find('.search-container').find('.search-results-container').fadeIn('fast');
+				});
+			}, 100);
+		}
+	});
+
+	main.delegate('#txt-search', 'blur', function () {
+		main.find('.search-container').find('.search-results-container').fadeOut('fast');
+	}).delegate('#txt-search', 'focus', function () { main.find('.search-container').find('.search-results-container').fadeIn('fast'); });
+
+
+
+	// CHECA IDIOMA ATUAL PELA URL
+	function checkUrlIdioma () {
+		var currentLang = getCurrentIdioma();
+		var comboIdioma = $('#languages-combobox');
+		var item = comboIdioma.find('.combobox-item[data-value="' + currentLang + '"]');
+		// seta valor atual no combo
+		if (item) {
+			var selectedItem = comboIdioma.find('.selected-value').find('.combobox-item');
+			selectedItem.html($(item).html());
+		}
+	}
+
+	// EVENTOS GLOBAIS   ----------------
+
+	// pesquisa satisfacao click satisfacao sim ou nao
+	conteudo.delegate('.pesquisa-satisfacao .buttons .btn-no', 'click', function (e) {
+		var pesquisa = $(this).closest('.pesquisa-satisfacao');
+		$(this).parent().find('.cst-button').removeClass('selected');
+		$(this).addClass('selected');
+
+		var satisfacao = $(this).data('satisfacao');
+		var comentarios = pesquisa.find('.txt-comentarios').val();
+		pesquisa.trigger('enviarPesquisa', [{ satisfacao: satisfacao, comentarios: comentarios }]);
+
+		// remover aqui se cada envio de pesquisa for tratado em cada tela
+		pesquisa.find('.enviar-satisfacao').addClass('hidden');
+		pesquisa.find('.agradecemos-feedback').fadeIn('fast');
+
+		window.open('/hc/requests/new?ticket_form_id=' + CST_CONFIGS.configs.forms.centro_servicos);
+	});
+
+	conteudo.delegate('.pesquisa-satisfacao .buttons .btn-yes', 'click', function (e) {
+		var pesquisa = $(this).closest('.pesquisa-satisfacao');
+		var satisfacao = $(this).data('satisfacao');
+		var comentarios = pesquisa.find('.txt-comentarios').val();
+		pesquisa.trigger('enviarPesquisa', [{ satisfacao: satisfacao, comentarios: comentarios }]);
+
+		// remover aqui se cada envio de pesquisa for tratado em cada tela
+		pesquisa.find('.enviar-satisfacao').addClass('hidden');
+		pesquisa.find('.agradecemos-feedback').fadeIn('fast');
+	});
+
+	// pesquisa satisfacao dispara evento para enviar
+	conteudo.delegate('.pesquisa-satisfacao .btn-enviar', 'click', function (e) {
+		if ($(this).attr('disabled') == 'disabled' || $(this).hasClass('hidden'))
+			return;
+
+		var pesquisa = $(this).closest('.pesquisa-satisfacao');
+		var satisfacao = pesquisa.find('.buttons .btn.selected').data('satisfacao');
+		if (satisfacao) {
+			var comentarios = pesquisa.find('.txt-comentarios').val();
+			pesquisa.trigger('enviarPesquisa', [{ satisfacao: satisfacao, comentarios: comentarios }]);
+
+			// remover aqui se cada envio de pesquisa for tratado em cada tela
+			pesquisa.find('.enviar-satisfacao').addClass('hidden');
+			pesquisa.find('.agradecemos-feedback').fadeIn('fast');
+		}
+	});
+
+	// CHECAR SE ORGANIZATION E LIBERADA PARA ABRIR TELAS DE SUPORTE
+	$('a[href^="#/suportetecnico"], a[href^="#/suportetecnico"] span').click(function (e) {
+		return validateOrg();
+	});
+
+	header.find('.user-info-login').show();
+	header.find('.user-info-container').hide();
+
+	checkUrlIdioma();
+});
+
+function updateNotificacoes (tickets) {
+	if (tickets && tickets.error) return;
+	if (!tickets) return;
+	const ticketsReverse = tickets.reverse();
+	tickets = ticketsReverse;
+	let brandsResult = "brands";
+	let requestUrl = CENTRALBASE + '/brands';
+	let brandsUrls = {};
+	$.ajax({
+		url: requestUrl,
+		type: 'GET',
+		contentType: 'application/json',
+		success: function (brands) {
+			if (!brands) {
+				console.error(brands);
+				carregando(true);
+				hcErrorAlert(CST_CONFIGS.placeholders['ocorreu_um_erro_tente_novamente'])
+				return;
+			}
+
+			for (var i = 0; i < brands[brandsResult].length; i++) {
+				brandsUrls[brands[brandsResult][i].id] = brands[brandsResult][i].brand_url;
+			}
+			var header = $('#cst-header');
+
+
+			// var notificacoes =
+			// [
+			// { 'titulo': 'Nossos serviços', 'texto': 'Pesquisa de satisfação do chamado TXJIPN disponível', 'date':'2 dias atrás', 'url':'#' },
+			// { 'titulo': 'Encerramento', 'texto': 'Chamado TXJIPN encerrado!', 'date':'4 dias atrás', 'url':'#' },
+			// { 'titulo': 'Nossos serviços', 'texto': 'Pesquisa de satisfação do chamado TXJIPN disponível', 'date':'22 dias atrás', 'url':'#' }
+			// ];
+
+			let notificacoes = [];
+			let itemsProcessed = 0;
+
+			tickets.forEach(ticket => {
+				itemsProcessed++;
+				let texto, titulo;
+				let statusUpdated = false;
+				let justCreated = false;
+				let urlBrand = 'https://totvscst.zendesk.com';
+
+				$.ajax({
+					url: CENTRALBASE + '/audits/' + ticket.id,
+					type: 'GET',
+					contentType: 'application/json',
+					success: function (response) {
+						if (response.audits) {
+							if (response.audits.length == 1) {
+								justCreated = true;
+							} else {
+								const lastAudit = response.audits[response.count - 1];
+								const events = lastAudit.events;
+								for (let i = 0; i < events.length; i++) {
+									const event = JSON.parse(events[i]);
+									if (event.type && event.field_name && event.type == "Change" && event.field_name == "status") {
+										statusUpdated = true;
+									}
+								}
+							}
+						}
+						//loop para buscar a brand que o ticket está cadastrado
+						for (let i = 0; i < brands[brandsResult].length; i++) {
+							if (brands[brandsResult][i].id == ticket.brand_id) {
+								urlBrand = brands[brandsResult][i].brand_url;
+								break;
+							}
+						}
+
+						if (justCreated) {
+							titulo = "Nova solicitação registrada"
+							texto = "A solicitação #" + ticket.id + " foi aberta!";
+						} else if (!statusUpdated) {
+							titulo = "Atualização de solicitação"
+							texto = "Ocorreu em sua solicitação #" + ticket.id + " uma atualização."
+						} else {
+							switch (ticket.status) {
+								case "open":
+									titulo = "Atualização de solicitação"
+									texto = "Ocorreu em sua solicitação #" + ticket.id + " uma atualização."
+									break;
+
+								case "pending":
+									titulo = "Aguardamos seu retorno"
+									texto = "A solicitação #" + ticket.id + " está aguardando seu retorno, não deixe de nos responder!"
+									break;
+
+								case "solved":
+									titulo = "Validação Cliente!"
+									texto = "Sua solicitação #" + ticket.id + " esta em validação cliente."
+									break;
+
+								case "closed":
+									titulo = "Solicitação fechada!"
+									texto = "A solicitação #" + ticket.id + " foi fechada!"
+									break;
+							}
+						}
+						notificacoes.push({
+							'titulo': titulo,
+							'texto': texto,
+							'date': dateToString(new Date(Date.parse(ticket.updated_at)), "yyyy-MM-dd HH:mm"),
+							'url': urlBrand + '/hc/requests/' + ticket.id
+						});
+						if (itemsProcessed === tickets.length) {
+							buildNotificationsList();
+						}
+					},
+					error: function (err) {
+						carregando(true);
+						hcErrorAlert(CST_CONFIGS.placeholders['ocorreu_um_erro_tente_novamente'])
+					}
+				});
+
+			})
+			function buildNotificationsList () {
+				var listaNotificacoes = header.find('.notificacoes-lista').find('ul');
+				if (notificacoes.length == 0) {
+					notificacoes.push({ 'texto': 'Não foram encontradas atualizações recentes' }); // DEFAULT ITEM SE NAO TIVER NENHUMA NOTIFICACAO
+					header.find('.user-info-notificacoes').removeClass('new-notificacoes');
+				}
+				else
+					header.find('.user-info-notificacoes').addClass('new-notificacoes');
+
+				var html = '';
+				for (var i = 0; i < notificacoes.length; i++) {
+					var notificacao = notificacoes[i];
+
+					html += '<li class="notificacao-lista-item">';
+					html += '  <div class="notificacao-item-titulo">' + (notificacao.titulo || '') + '</div>';
+					html += '  <div class="notificacao-item-msg">' + (notificacao.texto || '') + '</div>';
+					html += '  <div class="notificacao-item-date">' + (notificacao.date || '') + '</div>';
+					html += ' <a href="' + notificacao.url + '"><span></span></a>';
+					html += '</li>';
+				}
+
+				listaNotificacoes.html(html);
+				haveAlerts = true;
+			}
+		},
+		error: function (err) {
+			try {
+				if (typeof carregando === 'function') {
+					carregando(true);
+				}
+			}
+			catch (e) {
+				console.error(e);
+			}
+			hcErrorAlert(CST_CONFIGS.placeholders['ocorreu_um_erro_tente_novamente'])
+		}
+	});
+
+
+}
+
+
+function checkDadosSessao (cb, showLoadingPanel) {
+	showLoadingPanel = showLoadingPanel == false ? false : true;
+	if (!DADOS_SESSAO.user) {
+		$('#cst-header').find('.user-info-loading').show();
+		if (showLoadingPanel) $('body').loading(loadOptions);
+
+		getUserInfo(function (info) {
+			var user = info && info.user ? info.user : null;
+			var organizations = info && info.organizations ? info.organizations : [];
+			DADOS_SESSAO['user'] = user;
+			DADOS_SESSAO['organizations'] = organizations.sort();
+
+			if (!user) {
+				$('.user-info-login').find('.user-info-container').hide();
+				$('.user-info-login').find('.btn-user-login').show();
+				if (showLoadingPanel) $('body').loading('stop');
+
+				//esconde botoes de chat
+				$('#chat-show').hide();
+
+				if (cb) cb(null);
+				return;
+			}
+
+			var name = user.name ? user.name : 'Usuário';
+			$('#cst-header').find('.user-info-container').find('.user-name').html(name);
+			$('#cst-header').find('.user-info-loading').fadeOut('fast');
+
+			$('#drz_btn_open').show();
+			$("#drz_btn_header").css("display", "block");
+
+			if (organizations.length > 0) {
+				var cookieValue = Cookies.get('_cstSelectedOrg') || -1;
+				var org = null;
+				for (var i = 0; i < organizations.length; i++) {
+					if (i == 0 || organizations[i]['id'] == cookieValue) {
+						org = organizations[i];
+					}
+				}
+
+				updateEmpresaDados(org);
+
+				$('.user-info-login').find('.btn-user-login').hide();
+				$('.user-info-login').find('.user-info-container').show();
+			}
+
+			afterUserChecked();
+		});
+
+	}
+	else
+		afterUserChecked();
+
+	function afterUserChecked () {
+		appendMensagemNavegadorObsoleto();
+
+		try {
+			if (DADOS_SESSAO.user.email) {
+				window.userGuiding.identify(DADOS_SESSAO.user.email);
+			}
+		} catch(error) {
+			console.log("Error: " + error.message);
+		}
+		
+
+		var header = $('#cst-header');
+
+		// Não pode ter a organização com nome "Contatos Sem Organização"
+		let unlinkedContactOrganization = CST_CONFIGS.env == 'prod' ? 360174220832 : 360449670811
+
+		let checkMyRequestPage = false;
+		if (window.location.toString().indexOf('#solicitacoes') > -1 || window.location.toString().indexOf('requests') > -1) {
+			checkMyRequestPage = true;
+		}
+
+		if (DADOS_SESSAO.user.role == "anonymous" && checkMyRequestPage) {
+			RedirectUserToLogin(true);
+		}
+
+		let msgUnlinkOrg = `Seu usuário não possui organização vinculada para abertura de solicitação.
+							Ou não pertence a Marca do ambiente selecionado"
+							Favor procurar o administrador do portal para que vincule seu usuário a organização.`;
+		let hasOrganization = false;
+		if (DADOS_SESSAO.organizations.length > 0) {
+			hasOrganization = true;
+			// Não pode ter a organização com nome "Contatos Sem Organização"
+			if (DADOS_SESSAO.organizations[0].id == unlinkedContactOrganization) {
+				hasOrganization = false;
+			}
+		}
+		// Tratamento para mostrar na pagina de solicitações (myrequests.js)
+		if (DADOS_SESSAO.organizations.length == 0 && checkMyRequestPage) {
+			hcErrorAlert(msgUnlinkOrg)
+		}
+
+		if (DADOS_SESSAO.user) {
+			if (!hasOrganization) {
+				$('.list-group').empty();
+				$("#hcform").removeClass('col-sm-7');
+				$("#hcform").empty().append(
+					`<div class='alert alert-warning col-sm-7'>
+					<strong>Atenção!</strong>
+					${msgUnlinkOrg}
+					</div>`
+				);
+			} else {
+				$("#hcform").show();
+			}
+		}
+
+		if (DADOS_SESSAO.user && DADOS_SESSAO.user.email) {
+			header.find('.user-info-login').hide();
+			header.find('#btnRegister').hide();
+			header.find('.user-info-dropdown').find('.user-name').html(DADOS_SESSAO.user.name);
+			header.find('.user-info-dropdown').find('.user-name').attr('title', DADOS_SESSAO.user.name);
+			header.find('.user-info-container').show();
+		}
+
+		if (isValidReference("DADOS_SESSAO")) {
+			if (cb) cb(DADOS_SESSAO);
+			if (document.URL.indexOf('#autoatendimento') > -1) {
+				$("#chat-show").hide();
+				$(".chat-show").removeClass("visible");
+			} else if (DADOS_SESSAO.active_organization && !DADOS_SESSAO.hasChatBotInitialized) {
+				initializeChat();
+				setupPrechat();
+				DADOS_SESSAO.hasChatBotInitialized = true;
+			}
+		}
+		/* Validação se a Organização está ativa
+		if (hasOrganization) {
+			validateOrgActive();
+		}
+		*/
+		if (showLoadingPanel) $('body').loading('stop');
+
+	}
+}
+
+function setupPrechat () {
+	const forms = CST_CONFIGS.configs.forms;
+	if (!document.URL.includes(forms.suporte_tecnico) && !document.URL.includes(forms.cloudBasic)) {
+		prechatbot.setup();
+	}
+}
+
+var prechatbot = (function () {
+	return {
+		setup: function () {
+			if (window.location.href.startsWith('https://atendimento.totvs.com')
+				|| window.location.href.startsWith('https://atendimento-homolog.totvs.com')) {
+				let script = document.createElement('script');
+				script.src = `https://widgetsnippet-assistantbackend.apps.carol.ai/get_widget/totvs/assistantcst/Jj_Ti0dkHSSRZk36cHDr80DziM0JbVtuISxETiLDNJs`;
+				script.onload = () => {
+					window.addEventListener('assistant-ready', () => {
+						window.assistantWidget('user_email', DADOS_SESSAO.user.email);
+						window.assistantWidget('location', true);
+					});
+				};
+				document.head.append(script);
+			} else {
+				installScriptHeader(CHATBOTPATH);
+				this.install();
+			}
+
+		},
+		install: function () {
+			setTimeout(function () {
+				this.initChatbot(CST_CONFIGS.env, DADOS_SESSAO.active_organization.tags);
+			}, 2500);
+		}
+	};
+})();
+
+
+function appendMensagemNavegadorObsoleto () {
+
+	var browser = getBrowser()
+	// Opera 8.0+
+	var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+	// Firefox 1.0+
+	var isFirefox = typeof InstallTrigger !== 'undefined';
+	// Safari 3.0+ "[object HTMLElementConstructor]" 
+	var isSafari = /constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || (typeof safari !== 'undefined' && safari.pushNotification));
+	// Internet Explorer 6-11
+	var isIE = /*@cc_on!@*/!!document.documentMode || false;
+	// Edge 20+
+	var isEdge = !isIE && !!window.StyleMedia;
+	// Chrome 1+
+	var isChrome = !!window.chrome && !!window.chrome.webstore;
+
+	var isMessageNeeded = false
+
+	if (isChrome) {
+		if (browser.version < 30) {
+			isMessageNeeded = true;
+		}
+	} else if (isFirefox) {
+		if (browser.version < 27) {
+			isMessageNeeded = true;
+		}
+	} else if (isSafari) {
+		if (browser.version < 7) {
+			isMessageNeeded = true;
+		}
+	} else if (isOpera) {
+		if (browser.version < 17) {
+			isMessageNeeded = true;
+		}
+	} else if (isEdge) {
+		if (browser.version < 12) {
+			isMessageNeeded = true;
+		}
+	} else if (isIE) {
+		if (browser.version < 11) {
+			isMessageNeeded = true;
+		}
+	}
+
+	if (isMessageNeeded) {
+		var messageAlreadyExists = document.getElementsByClassName('div_mensagem_nav_obsoleto').length
+
+		if (!messageAlreadyExists > 0) {
+			$('.menu-superior').prepend($('<div class="div_mensagem_nav_obsoleto" style="font-size: 13px;display: block;padding-top: 5px;text-align: center;background: #fcbf2f;color: white;"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> <span>Prezado cliente, identificamos que você está acessando o nosso portal através de um navegador obsoleto.</span><br><span>Para que você tenha uma experiência melhor e mais segura, solicitamos que você atualize o seu navegador com as seguintes versões: Internet Explorer 11, Edge 12+, Firefox 27+, Chrome 30+, Safari 7+.</span></div>').fadeIn('slow'));
+		}
+	}
+}
+
+function installScriptHeader (script) {
+	var s = document.createElement("script");
+	s.type = "text/javascript";
+	s.charset = "UTF-8";
+	s.src = script;
+	var head = document.getElementsByTagName("head")[0];
+	head.appendChild(s);
+}
+
+function getBrowser () {
+	var ua = navigator.userAgent, tem, M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+	if (/trident/i.test(M[1])) {
+		tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
+		return { name: 'IE', version: (tem[1] || '') };
+	}
+	if (M[1] === 'Chrome') {
+		tem = ua.match(/\bOPR|Edge\/(\d+)/)
+		if (tem != null) { return { name: 'Opera', version: tem[1] }; }
+	}
+	M = M[2] ? [M[1], M[2]] : [navigator.appName, navigator.appVersion, '-?'];
+	if ((tem = ua.match(/version\/(\d+)/i)) != null) { M.splice(1, 1, tem[1]); }
+	return {
+		name: M[0],
+		version: M[1]
+	};
+}
+
+function updateEmpresaDados (org) {
+	var header = $('#cst-header');
+
+	/*
+		O QUE			NO MAXIME		NA ZENDESK
+		Nome fantazia 	A1_NREDUZ		orgfield_nome_fantasia_razao_social
+		Razao social 	A1_NOME 		name
+	*/
+
+	// painel menu superior dados do usuario
+	var organization_fields = org.organization_fields || {};
+	var codTotvs = organization_fields['orgfield_codigo'] || '';
+	var cnpj = organization_fields['orgfield_cnpj_id_cpf'] || '';
+	var razaoSocial = organization_fields['orgfield_nome_fantasia_razao_social'] || '';
+	var empName = org.name;
+	var loja = organization_fields['orgfield_loja'] || '';
+	var adm = organization_fields['orgfield_adm_do_cont_portal'] || '';
+
+	header.find('#user-info-cod-totvs').val(codTotvs);
+	header.find('#user-info-cnpj').val(cnpj).mask(MASCARAS.cnpj).trigger('input');
+	header.find('.user-info-dropdown').find('.user-r-social').html(razaoSocial);
+
+	//$('#label-user-info-razao-social').val('Razão Social: '+ empName);
+	//	$('#label-user-info-razao-social').html('<span class="tkey">Razao Social: '+ empName +'</span>');
+	$('#label-user-info-razao-social').html('<span class="tkey">' + empName + '</span>');
+	header.find('#user-info-razao-social').val(razaoSocial);
+	header.find('#user-info-administrador').val(adm);
+
+	var dadosCliente =
+	{
+		'codigo_totvs': codTotvs,
+		'empresa': '01',        // fixo em 01
+		'filial': '00',          // fixo em 00
+		'loja': loja,
+		'razao_social': empName,
+		'cnpj': cnpj
+	};
+
+	DADOS_SESSAO['active_organization'] = org;
+	DADOS_SESSAO['dados_cliente'] = dadosCliente;
+
+	//setando cookies
+	Cookies.set('_cstSelectedOrg', org.id);
+
+	$('.pagina-conteudo').trigger('organizationChange', [{ 'organization': org }]);
+
+}
+
+
+function getUserAlerts (userId, cb) {
+	var params = {
+		user_id: userId,
+		sort_by: "updated_at",
+		sort_order: "desc",
+		per_page: 5,
+		include: "audits"
+	};
+	var options = {
+		url: MIDWAREPATH + "/central-base/alerts",
+		type: "POST",
+		contentType: "application/json",
+		data: JSON.stringify(params)
+	};
+	html.request(options)
+		.then(function (data) {
+
+			if (cb) cb(data);
+		})
+		.catch(function (err) {
+
+			if (cb) cb({ 'error': err });
+		});
+
+}
+
+function getUserInfo (cb) {
+
+	getUserSession(function (res) {
+		if (!res || res.error) {
+			if (cb) cb(res);
+			return;
+		}
+
+		var userId = res.id;
+		var sessionId = '';
+		var url = MIDWAREPATH + '/SESSION';
+		url += '?user=' + userId + '&session=' + sessionId;
+		$.ajax(
+			{
+				"url": url,
+				"type": "GET",
+				"contentType": "application/json",
+				"dataType": "json",
+				"success": function (response) {
+					var session_complete = response || {};
+					if (cb) cb(session_complete);
+				},
+				"error": function (jqXHR, textStatus, errorThrown) {
+					if (cb) cb({ 'error': textStatus });
+				}
+			});
+	});
+
+}
+
+
+function getUserSession (cb) {
+
+	var url = '/api/v2/users/me';
+
+	$.ajax(
+		{
+			"url": url,
+			"type": "GET",
+			"contentType": "application/json",
+			"dataType": "json",
+			"success": function (response) {
+
+				var userData = response && response.user ? response.user : null;
+				if (cb) cb(userData);
+			},
+			"error": function (jqXHR, textStatus, errorThrown) {
+				if (cb) cb({ 'error': textStatus });
+			}
+		});
+}
+
+//+--------------------------------------------------------------------------------------------+
+//|--> Função para buscar por e-mail os dados do usuário incluindo as organizações no retorno  |
+//+--------------------------------------------------------------------------------------------+
+function getUserInfoWithOrganizations () {
+	return new Promise(function (resolve, reject) {
+		$.ajax({
+			"url": MIDWAREPATH + "/getUserInfoWithOrganizations",
+			"type": "POST",
+			"contentType": "application/json",
+			"cors": true,
+			"dataType": "json",
+			"accept": "application/json",
+			"data": JSON.stringify({ token: html.gettoken() }),
+			"success": function (data) {
+				var userData = undefined;
+				var organizationData = undefined;
+				if (data) {
+					if (data.users && data.users.length > 0) {
+						$.each(data.users, function (index, value) {
+							if (value.email === HelpCenter.user.email) {
+								userData = value;
+							}
+						});
+					}
+					if (data.organizations && data.organizations.length > 0) {
+						organizationData = data.organizations;
+					}
+				}
+				resolve({ userData: userData, organizationData: organizationData });
+			},
+			"error": function (jqXHR, textStatus, errorThrown) {
+				reject("Falha ao recuperar dados do usuário [" + HelpCenter.user.email + "]: " + textStatus + " | " + errorThrown);
+			}
+		});
+	});
+}
+
+// SEARCH (INTEGRACAO FAQs)
+
+function getSearchResults (searchString, callback) {
+	if (!searchString || searchString == '') {
+		if (callback) callback([]);
+		return;
+	}
+
+	var url = MIDWAREPATH + '/BUSCA_SUGESTOES?text=' + searchString;
+
+	$.ajax({
+		"url": url,
+		"type": "GET",
+		"contentType": "application/json",
+		"dataType": "json",
+		"success": function (response) {
+			if (callback) callback(response);
+		},
+		"error": function (jqXHR, textStatus, errorThrown) {
+			if (callback) callback({ 'error': textStatus });
+		}
+	});
+}
+
+function goToSearch (str, tipo) {
+	if (!str) str = '';
+	if (!tipo) tipo = 'query';
+	var params = {};
+	params[tipo] = str;
+	params['lang'] = getCurrentIdioma() || 'pt-br';
+	var url = '/hc/#search';
+	url += '?' + $.param(params);
+	window.location.href = url;
+}
+
+//retorna os parametros para adicionar as urls para suporte.totvs
+function redirectSuporteTotvs (elem) {
+	var href = $(elem).attr('href');
+	if (!href) return true;
+
+	var cliente = DADOS_SESSAO.dados_cliente ? DADOS_SESSAO.dados_cliente.codigo_totvs : '';
+	var lang = getCurrentIdioma() || 'pt-br';
+	var paramCliente = 'cliente';
+	var paramLang = 'lang';
+	var params = {};
+	params[paramCliente] = cliente;
+	params[paramLang] = lang;
+
+	if (href.indexOf('?') < 0) href += '?' + $.param(params);
+	else href += '&' + $.param(params);
+
+	window.open(href, '_blank');
+	return false;
+}
+
+
+function enviarPesquisaSatisfacao (pesquisa, callback) {
+	var comentario = pesquisa.comentario;
+	var satisfacao = pesquisa.satisfacao;
+	var justificativa = pesquisa.justificativa;
+	var idTicket = pesquisa.idTicket;
+	var statusTicket = pesquisa.statusTicket;
+	var servico = pesquisa.servico;
+	var organizationId = DADOS_SESSAO.active_organization ? DADOS_SESSAO.active_organization.id : '';
+	var requesterId = DADOS_SESSAO.user.id;
+	var requesterNome = DADOS_SESSAO.user.name || '';
+
+	var postObj =
+	{
+		comentario: comentario,
+		satisfacao: satisfacao,
+		justificativa: justificativa,
+		id: idTicket,
+		status: statusTicket,
+		requesterId: requesterId,
+		requesterName: requesterNome,
+		servico: servico,
+		organization: organizationId
+	}
+
+	$.ajax({
+		"url": MIDWAREPATH + "/PESQUISA_SATISFACAO",
+		"type": "POST",
+		"contentType": "application/json",
+		"data": JSON.stringify(postObj),
+		"success": function (response) {
+			if (callback) callback(response);
+		},
+		"error": function (jqXHR, textStatus, errorThrown) {
+			console.error('Erro Satisfacação -->', errorThrown);
+			if (callback) callback({ error: errorThrown });
+		}
+	});
+}
+
+function showPesquisaSatisfacao () {
+	if ($('#pesquisa-satisfacao .agradecemos-feedback').is(':visible')) {
+		$('#pesquisa-satisfacao .agradecemos-feedback').hide();
+		$('#pesquisa-satisfacao .cst-button').removeClass('selected');
+		$('#pesquisa-satisfacao .enviar-satisfacao').fadeIn('fast');
+	}
+	else {
+		$('#pesquisa-satisfacao').first().show();
+	}
+}
+
+
+// ALERTAS
+
+function hcErrorAlert (args, callback) {
+	if (typeof args == 'string') args = { erro: args };
+	if (!args) args = {};
+
+	var tipo = args.tipo;
+	if (tipo == 'webservice-fora')
+		args.erro = CST_CONFIGS.placeholders['erro_de_conexao'];
+
+	var message = args.erro;
+	var closeOnBodyClick = args.closeOnBodyClick || false;
+
+	var alertHtml = '';
+	alertHtml += '<div class="custom-alerta-background" style="display:none;">';
+	alertHtml += '    <div class="custom-alerta alert error">';
+	alertHtml += '        <div class="alerta-icone"></div>';
+	alertHtml += '        <div class="message">' + message + '</div>';
+	alertHtml += '        <div class="fecha">&times;</div>';
+	alertHtml += '    </div>';
+	alertHtml += '</div>';
+
+	var alert = $(alertHtml);
+	$('body').append(alert);
+
+	alert.fadeIn('fast');
+	alert.click(function () {
+		if (closeOnBodyClick) {
+			if (callback) callback(false);
+			alert.hide();
+		}
+	});
+
+	alert.find('.custom-alerta').click(function (e) {
+		e.stopPropagation();
+	});
+
+	alert.find('.fecha').click(function (e) {
+		if (callback) callback(true);
+		alert.hide();
+	});
+
+
+	alert.hide = function () {
+		$(this).fadeOut('fast');
+		$(this).remove();
+	}
+
+	return alert;
+}
+
+function hcSuccessAlert (args, callback) {
+	if (typeof args == 'string') args = { message: args };
+	if (!args) args = {};
+
+	alert(args.message); //NOSONAR
+}
+
+function showAlert (args, callback) {
+	if (typeof args == 'string') args = { message: args };
+	if (!args) args = {};
+
+	var message = args.message || '';
+	var closeOnBodyClick = args.closeOnBodyClick || false;
+
+	var alertHtml = '';
+	alertHtml += '<div class="custom-alerta-background style="display:none;">';
+	alertHtml += '    <div class="custom-alerta alert">';
+	alertHtml += '        <div class="message">' + message + '</div>';
+	alertHtml += '        <div class="btn btn-primary btn-custom-alerta btn-ok">OK</div>';
+	alertHtml += '    </div>';
+	alertHtml += '</div>';
+
+	var alert = $(alertHtml);
+	$('body').append(alert);
+
+	alert.fadeIn('fast');
+	alert.click(function () {
+		if (closeOnBodyClick) {
+			if (callback) callback(false);
+			alert.hide();
+		}
+	});
+
+	alert.find('.custom-alerta').click(function (e) {
+		e.stopPropagation();
+	});
+
+	alert.find('.btn-ok').click(function (e) {
+		if (callback) callback(true);
+		alert.hide();
+	});
+
+
+	alert.hide = function () {
+		$(this).fadeOut('fast');
+		$(this).remove();
+		if (args.redirect) {
+			window.location.href = args.redirect;
+		}
+	}
+
+	return alert;
+}
+
+function showConfirm (args, callback) {
+	if (typeof args == 'string') args = { message: args };
+	if (!args) args = {};
+
+	var message = args.message || '';
+	var showOkButton = args.showOkButton || true;
+	var showCancelButton = args.showCancelButton || true;
+	var closeOnBodyClick = args.closeOnBodyClick || true;
+	let okButtonLabel = args.okButtonLabel || "OK";
+	let cancelButtonLabel = args.cancelButtonLabel || "Cancelar";
+
+	var alertHtml = '';
+	alertHtml += '<div class="custom-alerta-background style="display:none;">';
+	alertHtml += '    <div class="custom-alerta confirm">';
+	alertHtml += '        <div class="message">' + message + '</div>';
+	alertHtml += '        <div class="btn btn-primary btn-custom-alerta btn-ok ' + (showOkButton == false ? 'hidden' : '') + '">' + okButtonLabel + '</div>';
+	alertHtml += '        <div class="btn btn-primary btn-custom-alerta btn-cancel ' + (showCancelButton == false ? 'hidden' : '') + '">' + cancelButtonLabel + '</div>';
+	alertHtml += '    </div>';
+	alertHtml += '</div>';
+
+	var alert = $(alertHtml);
+	$('body').append(alert);
+
+	alert.fadeIn('fast');
+	alert.click(function () {
+		if (closeOnBodyClick)
+			alert.hide();
+	});
+
+	alert.find('.custom-alerta').click(function (e) {
+		e.stopPropagation();
+	});
+
+	alert.find('.btn-ok').click(function (e) {
+		if (callback) callback(true);
+		alert.hide();
+	});
+
+	alert.find('.btn-cancel').click(function (e) {
+		if (callback) callback(false);
+		alert.hide();
+	});
+
+	alert.hide = function () {
+		$(this).fadeOut('fast');
+		$(this).remove();
+	}
+
+	return alert;
+}
+
+//===função para gerar ticket===//
+function geraTicket (ticketBody, cb) {
+	var stringifiedData = JSON.stringify(ticketBody);
+
+	$.ajax({
+		"url": MIDWAREPATH + "/CRIA_TICKET",
+		"type": "POST",
+		"contentType": "application/json",
+		"data": stringifiedData,
+		"dataType": "json",
+		"success": function (response) {
+			cb(response);
+		},
+		error: function (jqXHR, textStatus, errorThrown) {
+			console.error(textStatus, errorThrown);
+			cb("Erro ao enviar solicitação!")
+		}
+	});
+}
+//======
+
+function validateOrg (e) {
+	var isValid = true;
+	var tags = DADOS_SESSAO.active_organization.tags || [];
+
+	for (var i = 0; i < tags.length; i++) {
+		if (tags[i] === 'orgfield_suporte_liberado_nao' || tags[i] === 'orgfield_ativo_nao') {
+			isValid = false;
+			break;
+		}
+	}
+
+	if (!isValid) montaModal("#notAuthorizedOrg");
+	return isValid;
+}
+
+function validateOrgActive (e) {
+	var isValid = true;
+	var tags = DADOS_SESSAO.active_organization.tags || [];
+
+	for (var i = 0; i < tags.length; i++) {
+		if (tags[i] === 'orgfield_ativo_nao') {
+			isValid = false;
+			break;
+		}
+	}
+
+	if (!isValid) montaModalBlock("#notAuthorizedOrgBlock");
+	return isValid;
+}
+
+
+function montaModal (id) {
+	//mostra o modal
+	$('#mascara-org-auth').fadeIn(200);
+
+	var left = ($(window).width() / 2) - ($('.window').width() / 2);
+	var top = ($(window).height() / 2) - ($('.window').height() / 2);
+
+	$('#mascara-org-auth').find('.window').css({ 'top': top, 'left': left });
+
+	var username = DADOS_SESSAO.user ? DADOS_SESSAO.user.name : '';
+	$('#mascara-org-auth').find('.window').find('#nome').html(username);
+	$('#mascara-org-auth').find('.window').find('#empresa').html(DADOS_SESSAO.active_organization.name);
+	$('#mascara-org-auth').find('.window').find('#empresa2').html(DADOS_SESSAO.active_organization.name);
+
+	$(id).fadeIn(500);
+
+	/*
+	$("#mascara").click(function () {
+	  $(this).fadeOut(500);
+	  $(id).fadeOut(500);
+	});
+
+	$('.fechar').click(function (ev) {
+	  ev.preventDefault();
+	  $("#mascara").fadeOut(500);
+	  $(id).fadeOut(500);
+	  $('selector').click(function () {
+		return false;
+	  });
+  });*/
+}
+
+function montaModalBlock (id) {
+	//mostra o modal
+
+	const cstHeader = $('#cst-header');
+	const menuSuperiorMB = $('.menu-superior').css('margin-bottom');
+
+	if (!menuSuperiorMB) return; //sai da função no atendimento.totvs
+
+	cstHeader.css({ 'position': 'relative' });
+	cstHeader.find('.menu-superior').css({ 'position': 'absolute', 'top': 0, 'left': 0, 'z-index': 999999 });
+
+	$('#mascara-org-auth-block').fadeIn(200);
+
+	var left = ($(window).width() / 2) - ($('.window').width() / 2);
+	var top = ($(window).height() / 2) - ($('.window').height() / 2) - ($('.menu-superior').height() * 2) - +menuSuperiorMB.substring(0, menuSuperiorMB.length - 2);
+	$('#mascara-org-auth-block').find('.window').css({ 'top': top, 'left': left });
+
+	var username = DADOS_SESSAO.user ? DADOS_SESSAO.user.name : '';
+	$('#mascara-org-auth-block').find('.window').find('#nome').html(username);
+	$('#mascara-org-auth-block').find('.window').find('#empresa').html(DADOS_SESSAO.active_organization.name);
+	$('#mascara-org-auth-block').find('.window').find('#empresa2').html(DADOS_SESSAO.active_organization.name);
+
+
+
+	$(id).fadeIn(500);
+}
+
+
+
+function customLoading (val) {
+	if (val) {
+		var html = '<div style="position:fixed; top:0px;';
+		html += 'left:0px; right:0px; bottom:0px; z-index:20; cursor:wait;"';
+		html += ' id="custom-loading"></div>';
+
+		if ($('body').find('#custom-loading').length == 0)
+			$('body').append(html);
+	}
+	else {
+		$('body').find('#custom-loading').remove();
+	}
+
+}
+
+
+
+
+
+
+//UTILS
+function getUrlParameter (sParam, url) {
+	if (!url) url = window.location.href;
+	var sPageURL = decodeURIComponent(url.substring(url.indexOf('?') + 1)),
+		sURLVariables = sPageURL.split('&'),
+		sParameterName,
+		i;
+
+	for (i = 0; i < sURLVariables.length; i++) {
+		sParameterName = sURLVariables[i].split('=');
+
+		if (sParameterName[0] === sParam) {
+			return sParameterName[1] === undefined ? true : sParameterName[1];
+		}
+	}
+}
+
+function geraTable (descricao, valor) {
+	var html = '';
+
+	//===prepara template para cada combo do formulario dinamico a ser gerado===
+	var htmlTemplate = '';
+	htmlTemplate += '<tr>'
+	htmlTemplate += '<td>{{descricao}}</td>'
+	htmlTemplate += '<td>{{valor}}</td>'
+	htmlTemplate += '</tr>'
+	//======
+
+	//===retorna se dados estiverem inconsistentes===
+	if (descricao.length != valor.length) {
+		return '';
+	}
+	//======
+
+	//===adiciona html para cada campo fornecido como parametro===
+	else {
+		for (var i = 0; i < descricao.length; i++) {
+			html += htmlTemplate;
+			html = html.replace('{{descricao}}', descricao[i]);
+			html = html.replace('{{valor}}', valor[i]);
+		}
+		return html;
+	}
+	//======
+}
+
+
+
+function stringToDate (str) {
+	if (!str) return null;
+
+	var date = [1970, 0, 1, 0, 0, 0, 0];
+
+	var dateTimeRegex = /^(\d{4})-(\d{2})-(\d{2})( (\d{2}):(\d{2})(:(\d{2})(.(\d{3}))?)?)?$/;
+	var dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
+	var timeRegex = /^(\d{2}):(\d{2})(:(\d{2})(.(\d{3}))?)?$/;
+
+	var d = dateRegex.exec(str);
+	if (d) {
+		if (d.length > 1 && d[1]) date[0] = parseInt(d[1]);
+		if (d.length > 2 && d[2]) date[1] = parseInt(d[2] - 1);
+		if (d.length > 3 && d[3]) date[2] = parseInt(d[3]);
+		date = new Date(date[0], date[1], date[2]);
+	}
+	else {
+		var dt = dateTimeRegex.exec(str);
+		if (dt) {
+			// [1,2,3] | [5,6,8,10]
+			if (dt.length > 1 && dt[1]) date[0] = parseInt(dt[1]);
+			if (dt.length > 2 && dt[2]) date[1] = parseInt(dt[2] - 1);
+			if (dt.length > 3 && dt[3]) date[2] = parseInt(dt[3]);
+			if (dt.length > 5 && dt[5]) date[3] = parseInt(dt[5]);
+			if (dt.length > 6 && dt[6]) date[4] = parseInt(dt[6]);
+			if (dt.length > 8 && dt[8]) date[5] = parseInt(dt[8]);
+			if (dt.length > 10 && dt[10]) date[6] = parseInt(dt[10]);
+			date = new Date(date[0], date[1], date[2], date[3], date[4], date[5], date[6]);
+		}
+		else {
+			var t = timeRegex.exec(str);
+			if (t) {
+				//[1,2,4,6]
+				if (t.length > 1 && t[1]) date[3] = parseInt(t[1]);
+				if (t.length > 2 && t[2]) date[4] = parseInt(t[2]);
+				if (t.length > 4 && t[4]) date[5] = parseInt(t[4]);
+				if (t.length > 6 && t[6]) date[6] = parseInt(t[6]);
+				date = new Date(date[0], date[1], date[2], date[3], date[4], date[5], date[6]);
+			}
+		}
+	}
+	return date;
+}
+
+function dateToString (date, format) {
+	if (typeof date == 'string') date = stringToDate(date);
+	if (!date || !(date instanceof Date)) return null;
+
+	if (!format) format = 'yyyy-MM-dd HH:mm:ss.fff';
+	function f (value, length) { value = value.toString(); while (value.length < length) value = '0' + value; return value; }
+
+	var yyyy = f(date.getFullYear(), 4);
+	var YY = yyyy.substring(2);
+	var MM = f(date.getMonth() + 1, 2);
+	var dd = f(date.getDate(), 2);
+	var HH = f(date.getHours(), 2);
+	var mm = f(date.getMinutes(), 2);
+	var ss = f(date.getSeconds(), 2);
+	var fff = f(date.getMilliseconds(), 3);
+
+	return format.replace('yyyy', yyyy).replace('YY', YY).replace('MM', MM).replace('dd', dd).replace('HH', HH).replace('mm', mm).replace('ss', ss).replace('fff', fff);
+}
+
+// +----------------------+
+// |--> Troca de idioma   |
+// +----------------------+
+function setLocalLanguage (language) {
+	var loggedUserEMail = HelpCenter.user.email;
+	if (language && loggedUserEMail) {
+		hcLoading();
+		var currentLanguage = getCurrentLanguage();
+		//--> Busca na API os dados do usuário incluindo as organizações
+		getUserInfoWithOrganizations().then(
+			function (userInfo) {
+				if (userInfo.userData) {
+					//--> Busca na API o ID do idioma recebido por parâmetro na função
+					getZendeskLocaleId(language).then(function (locale_id) {
+						if (locale_id) {
+							//--> Só faz a atualização se o idioma estiver diferente para evitar processamento desnecessário
+							if (userInfo.userData.locale_id !== locale_id) {
+								const requestBody = {
+									user: {
+										locale_id: locale_id
+									}
+								};
+								updateZendeskUser(userInfo.userData.id, requestBody, undefined).then(
+									function (userUpdatedData) {
+										//--> Tratamento especial para burlar a falha do Zendesk que
+										//    as vezes desvinvula organizações ao atualizar um usuário
+										divertZendeskFailure(loggedUserEMail, userInfo.organizationData).then(
+											function (data) {
+
+												//--> Atualiza o Cache do navegador
+												localStorage.setItem('_cstUserLanguage' + loggedUserEMail, language);
+
+												//--> Recarrega a página conforme a alteração de idioma
+												onChangeLanguage(language);
+
+												hcLoading('stop');
+											},
+											function (response) {
+												stopLoadingAndShowAlertError(response);
+												restorePreviousLanguageFlag(currentLanguage);
+											}
+										);
+									},
+									function (response) {
+										stopLoadingAndShowAlertError(response);
+										restorePreviousLanguageFlag(currentLanguage);
+									}
+								);
+							}
+						}
+					},
+						function (response) {
+							stopLoadingAndShowAlertError(response);
+							restorePreviousLanguageFlag(currentLanguage);
+						});
+				}
+			},
+			function (response) {
+				stopLoadingAndShowAlertError(response);
+				restorePreviousLanguageFlag(currentLanguage);
+			}
+		);
+	}
+	else {
+		//--> Recarrega a página conforme a alteração de idioma
+		onChangeLanguage(language);
+	}
+}
+
+function stopLoadingAndShowAlertError (message) {
+	hcLoading('stop');
+	hcErrorAlert(message);
+}
+
+function restorePreviousLanguageFlag (previousLanguage) {
+	var comboLanguage = $('#languages-combobox');
+	var selector = comboLanguage.find('.items-container');
+	var items = selector.find('.combobox-item');
+	var selectedItem = comboLanguage.find('.selected-value').find('.combobox-item');
+
+	var previousElementLanguage = items.filter(function () {
+		return $(this).data("value") === previousLanguage;
+	});
+
+	if (previousElementLanguage) {
+		selectedItem.html($(previousElementLanguage).html());
+	}
+}
+
+function getCurrentLanguage () {
+	var currentUrl = window.location.href;
+	let part1 = '';
+	let part2 = '';
+	if (~currentUrl.indexOf('/requests/')) {
+		part1 = currentUrl.indexOf('/hc/') + 4;
+		part2 = currentUrl.indexOf('/', part1);
+	}
+	else {
+		part1 = currentUrl.indexOf('/hc/') + 4;
+		part2 = currentUrl.indexOf('#');
+	}
+	return currentUrl.slice(part1, part2).replace('/', '');
+}
+
+//+------------------------------------------------------------------------+
+//|--> Função para buscar o ID da linguagem com base no idioma passado     |
+//+------------------------------------------------------------------------+
+function getZendeskLocaleId (language) {
+	return new Promise(function (resolve, reject) {
+		$.ajax({
+			"url": MIDWAREPATH + "/getLocales",
+			"type": "GET",
+			"contentType": "application/json",
+			"cors": true,
+			"dataType": "json",
+			"accept": "application/json",
+			"success": function (data) {
+				var locale_id = undefined;
+				if (data && data.locales && data.locales.length > 0) {
+					for (var it = 0; it < data.locales.length; it++) {
+						if (data.locales[it].locale.toLowerCase() === language.toLowerCase()) {
+							locale_id = data.locales[it].id;
+							break;
+						}
+					}
+				}
+				resolve(locale_id);
+			},
+			"error": function (jqXHR, textStatus, errorThrown) {
+				reject("Falha ao consultar linguagens [" + language + "]: " + textStatus + " | " + errorThrown);
+			}
+		});
+	});
+}
+
+//+----------------------------------------+
+//|--> Função para atualizar um usuário    |
+//+----------------------------------------+
+function updateZendeskUser (userID, requestBody, extraData) {
+	return new Promise(function (resolve, reject) {
+		$.ajax({
+			"url": MIDWAREPATH + "/update/user/" + userID,
+			"type": "PUT",
+			"contentType": "application/json",
+			"cors": true,
+			"dataType": "json",
+			"data": JSON.stringify(requestBody),
+			"accept": "application/json",
+			"success": function (userData) {
+				resolve({
+					userData: userData,
+					extraData: extraData
+				});
+			},
+			"error": function (jqXHR, textStatus, errorThrown) {
+				reject("Falha ao atualizar o usuário [" + userID + "]: " + textStatus + " | " + errorThrown);
+			}
+		});
+	});
+}
+
+//+---------------------------------------------------------------------------------------------+
+//|--> Função para refazer as organizações do usuário caso aconteça a falha nativa do Zendesk   |
+//+---------------------------------------------------------------------------------------------+
+function divertZendeskFailure (loggedUserEMail, previousOrganizations) {
+	return new Promise(function (resolve, reject) {
+		//--> Busca na API os dados do usuário incluindo as organizações
+		getUserInfoWithOrganizations().then(
+			function (userInfo) {
+				if (userInfo.organizationData) {
+					//--> Compara as organizações que tinham antes e depois da atualização do usuário
+					for (var i = 0; i < previousOrganizations.length; i++) {
+						var previousName = previousOrganizations[i].name;
+						var found = false;
+						for (var j = 0; j < userInfo.organizationData.length; j++) {
+							var currentName = userInfo.organizationData[j].name;
+							if (previousName === currentName) {
+								found = true;
+								break;
+							}
+						}
+						//--> Caso não tenha encontrado a relação da organização, faz a inclusão
+						//    via atualização direta do usuário
+						if (!found) {
+							var requestBody = {
+								user: {
+									email: loggedUserEMail,
+									organization: {
+										name: previousName
+									}
+								}
+							};
+							updateZendeskUser(userInfo.userData.id, requestBody, previousName).then(
+								function (userUpdatedData) {
+									if (userUpdatedData) {
+										var msg = "Corrigida a falha do Zendesk que desnvicula organizações após atualização.\n"
+										msg += "A organização [" + userUpdatedData.extraData;
+										msg += "] foi realocada ao usuário: " + userUpdatedData.userData.user.email;
+										console.warn(msg);
+									}
+								},
+								function (response) {
+									console.error(response);
+								}
+							);
+						}
+					}
+				}
+				resolve();
+			},
+			function (response) {
+				reject(response);
+			}
+		);
+	});
+}
+
+//--> Troca de lugar, era a função onItemClick(e) do combo de seleção de idioma no Script_cst.js
+function onChangeLanguage (langValue) {
+	if (langValue) {
+		var currentUrl = window.location.href;
+		let part1 = '';
+		let part2 = '';
+		if (~currentUrl.indexOf('/requests/')) {
+			part1 = currentUrl.indexOf('/hc/') + 4;
+			part2 = currentUrl.indexOf('/', part1);
+		}
+		else {
+			part1 = currentUrl.indexOf('/hc/') + 4;
+			part2 = currentUrl.indexOf('#');
+		}
+		var currentLang = currentUrl.slice(part1, part2);
+		var newUrl = currentUrl.replace('/' + currentLang, '/' + langValue);
+
+		if (newUrl !== currentUrl) {
+			//seta a traducao do google para o idioma do cst para a pagina de busca
+			var cookieArgs = { "domain": "zendesk.com" };
+			if (langValue === 'pt-br') {
+
+				Cookies.remove('googtrans');
+				Cookies.remove('googtrans', cookieArgs);
+			}
+			else if (langValue === 'es') {
+				Cookies.set('googtrans', '/pt/es');
+				Cookies.set('googtrans', '/pt/es', cookieArgs);
+			}
+			else if (langValue === 'en-us') {
+				Cookies.set('googtrans', '/pt/en');
+				Cookies.set('googtrans', '/pt/en', cookieArgs);
+			}
+
+			// Refresh da tela com o novo idioma
+			newUrl = '/hc/change_language/' + langValue + '?return_to=' + (window.location.href.substring(window.location.href.indexOf('/hc'))).replace('/' + currentLang, '');
+			window.location.href = newUrl;
+		}
+	}
+}

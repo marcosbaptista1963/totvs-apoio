@@ -1,0 +1,28 @@
+PERFORMANCE TOMCAT
+
+Solução
+1. Navegue até o diretório onde está instalado o Tomcat;
+
+2. Faça um backup do arquivo conf\catalina.properties. Em seguida edite o arquivo e altere-o conforme procedimento a seguir:
+
+De:
+
+tomcat.util.scan.StandardJarScanFilter.jarsToSkip=\
+Para:
+
+tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar\
+
+
+3. Ainda no arquivo conf\catalina.properties realize a seguinte alteração:
+
+
+De:
+
+tomcat.util.scan.StandardJarScanFilter.jarsToScan=\
+Para:
+
+tomcat.util.scan.StandardJarScanFilter.jarsToScan=spring-webmvc*.jar,totvs-login-java*.jar,jstl*.jar\
+
+4. Faça um backup do arquivo conf\server.xml. Edite o arquivo e localize a tag Host, localizada ao final do arquivo. Nesta tag, inclua a propriedade startStopThreads="3", conforme exemplo abaixo:
+
+<Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true" startStopThreads="3">

@@ -1,0 +1,3 @@
+PARAR AI
+
+# rfutil BANCO -C aimage end

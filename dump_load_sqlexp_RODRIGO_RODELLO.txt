@@ -1,0 +1,68 @@
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\emsdev -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 23619 -n 401 -Ma 15 -Mn 9 -Mpb 4
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\emsdev -ServerType SQL -m3  -S 23620 -Ma 10 -Mpb 4
+
+sh /usr/dlc/bin/proserve /totvs/bancos/emsdev -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 25619 -n 401 -Ma 15 -Mn 9 -Mpb 4
+sh /usr/dlc/bin/proserve /totvs/bancos/emsdev -ServerType SQL -m3  -S 25620 -Ma 10 -Mpb 4
+____________________________________________________________________________________________________
+
+sh /usr/dlc/bin/proserve /totvs/bancos/finance -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 25613 -n 401 -Ma 15 -Mn 9 -Mpb 4
+sh /usr/dlc/bin/proserve /totvs/bancos/finance -ServerType SQL -m3  -S 25614 -Ma 10 -Mpb 4
+
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\finance\finance -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 25613 -n 401 -Ma 15 -Mn 9 -Mpb 4
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\finance\finance -ServerType SQL -m3  -S 23614 -Ma 10 -Mpb 4
+
+__________________________________________________________________________________________________________
+
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\payroll2\payroll2 -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 25615 -n 401 -Ma 15 -Mn 9 -Mpb 4
+C:\dlc117\bin\proserve M:\totvs\datasul\dts-12\ERP\bancos\payroll2\payroll2 -ServerType SQL -m3  -S 25616 -Ma 10 -Mpb 4
+
+sh /usr/dlc/bin/proserve /totvs/bancos/payroll2 -B 1000 -spin 4000 -L 200000 -Mm 4096 -N tcp -S 25615 -n 401 -Ma 15 -Mn 9 -Mpb 4
+sh /usr/dlc/bin/proserve /totvs/bancos/payroll2 -ServerType SQL -m3  -S 25616 -Ma 10 -Mpb 4
+
+
+
+Dump - DF: 
+
+WINDOWS AONDE ESTA BANCO ORIGEM
+
+sqlschema -o emsdev.dfsql -t %.% -u pub -a pub progress:T:127.0.0.1:25620:emsdev
+
+sqlschema -o payroll2.dfsql -t %.% -u pub -a pub progress:T:127.0.0.1:25616:payroll2
+
+sqlschema -o finance.dfsql -t %.% -u pub -a pub progress:T:127.0.0.1:25614:finance
+
+
+
+DUMP - DADOS:
+
+
+sqldump -t %.% -u pub -a pub progress:T:127.0.0.1:25620:emsdev
+
+sqldump -t %.% -u pub -a pub progress:T:127.0.0.1:25614:finance
+
+sqldump -t %.% -u pub -a pub progress:T:127.0.0.1:25616:payroll2
+
+____________________________________________________________________________________________________________
+
+LOAD :
+
+load de usuários, sequence definitions e sequence values
+entrar no progress via windows na pasta dos loads e digitar o comando abaixo
+CONECTAR PELO WINDOWS
+sqlexp -user sysprogress -password sysprogress -url jdbc:datadirect:openedge://192.168.0.150:25614;databaseName=finance
+grant dba to pub;
+grant resource to pub;
+commit;
+exit
+
+
+sqlexp -user pub -password pub -db finance -H 192.168.0.150 -S 25614 -infile finance.dfsql
+
+for %i in (*.dsql) do sqlload -t %~ni -u pub -a pub progress:T:192.168.0.150:25614:finance
+
+
+
+
+[12:16, 04/06/2021] Rodrigo Rodello: via sysprogress no load
+[12:16, 04/06/2021] Rodrigo Rodello: os logins
+[12:16, 04/06/2021] Rodrigo Rodello: pois precisa de permissão

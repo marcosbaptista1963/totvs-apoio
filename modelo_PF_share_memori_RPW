@@ -1,0 +1,30 @@
+-l 50000
+-mmax 50000
+-s 20000
+-TB 31
+-TM 32
+-d dmy
+-Bt 32000
+-tmpbsize 8
+-Mm 16384
+-cpstream ibm850
+-q
+-h 100
+-numsep 46
+-numdec 44
+
+ 
+
+#@Inicio
+-db E:\totvs\datasul\dts12\bancos\teste\emsfnd  -ld emsfnd 
+-db E:\totvs\datasul\dts12\bancos\teste\ems2esp -ld mgesp  
+-db E:\totvs\datasul\dts12\bancos\teste\ems2sad -ld mgsad  
+-db E:\totvs\datasul\dts12\bancos\teste\ems5cad -ld emscad  
+-db E:\totvs\datasul\dts12\bancos\teste\ems5mov -ld emsmov  
+-db E:\totvs\datasul\dts12\bancos\teste\hcm     -ld hcm     
+-db E:\totvs\datasul\dts12\bancos\teste\hcmesp  -ld hcmesp  
+-db E:\totvs\datasul\dts12\bancos\teste\ems2cad -ld mgcad   
+-db E:\totvs\datasul\dts12\bancos\teste\ems2mov -ld mgmov   
+-db E:\totvs\datasul\dts12\bancos\teste\ems2sor -ld mgsor   
+#@Final
+# 1

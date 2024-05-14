@@ -1,0 +1,23 @@
+[14:32] Juliano Barbosa Ribeiro
+
+LIBERAR PORTA
+netsh http delete urlacl url=http://*:5000/totvs.tus/
+
+[14:32] Juliano Barbosa Ribeiro
+
+DELETAR SERIÇO
+sc delete totvs.tus
+
+https://centraldeatendimento.totvs.com/hc/pt-br/articles/360026699391
+
+https://centraldeatendimento.totvs.com/hc/pt-br/articles/360028145611-Framework-Linha-Datasul-TEC-Como-configurar-o-TUS-para-utilizar-Proxy
+
+
+PORTAS QUE DEVEM SER LIBERADAS NO FIREWALL
+
+[14:45] José Olavo de Melo Júnior
+https://cat.totvs.com.br
+https://cat1.totvs.com.br
+https://cat2.totvs.com.br
+
+

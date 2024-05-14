@@ -1,0 +1,7 @@
+PARAMETROS REINDEX
+
+BANCO TODO
+_proutil mgtrp -C idxbuild all -TB 64 -TF 90 -SG 64 -thread 1 -threadnum 4 -spin 150000 | tee reindex_mgtrp.txt
+
+SOMENTE TABELA
+_proutil ems2emp -C idxbuild table item-doc-est-tribut -TB 64 -TF 90 -SG 64 -thread 1 -threadnum 4 -spin 150000 | tee item-doc-est-tribut.txt

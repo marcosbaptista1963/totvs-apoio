@@ -1,0 +1,2 @@
+for each bco_empres.
+delete bco_empres.

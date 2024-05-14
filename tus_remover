@@ -1,0 +1,14 @@
+1.   sc.exe stop totvs.tus
+
+2.   sc.exe delete totvs.tus
+
+3.   netsh.exe http delete urlacl url=http://*:5000/totvs.tus/
+
+4.   net.exe localgroup TotvsTusUsers /DELETE
+
+5.   rmdir /S c:\totvs\tus\repo
+
+6.   rmdir /S c:\totvs\tus
+
+
+7.   Instalar novamente o TUS

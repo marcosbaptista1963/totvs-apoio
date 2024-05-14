@@ -1,0 +1,30 @@
+@echo off
+REM #***************************************************************************
+REM # File..................: prd-dts11-derrubausuarios.cmd
+REM # Description...........: Shutdown users
+REM # Created by............: Rodrigo Vidal
+REM #***************************************************************************
+
+set DLC=C:\Progress\dlc117
+set PATH=%DLC%;%DLC%\bin;%PATH%
+set DIR_BD=C:\temp\banco_teste
+
+@echo -------------------------------------------------------
+@echo        DERRUBA USUARIOS TOTVS 11 - PRODUCAO
+@echo -------------------------------------------------------
+
+C:
+cd %DIR_BD%
+
+for %%i in ( *.db) do (
+   cls.
+   @echo .
+   @echo ----------------------------------
+   @echo ----- Banco: %%~ni
+   @echo ----------------------------------
+   @echo .
+   echo Q | call promon %%~ni >> teste.txt
+
+)
+
+

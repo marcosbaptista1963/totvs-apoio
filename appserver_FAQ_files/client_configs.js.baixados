@@ -1,0 +1,1038 @@
+
+var CST_CONFIGS = {};
+
+CST_CONFIGS.Locales = [];
+CST_CONFIGS.DinamycContent = [];
+
+CST_CONFIGS.prod_url = 'https://totvscst.zendesk.com';
+CST_CONFIGS.homolog_url = [
+    "https://atendimento-homolog.totvs.com",
+    "https://centraldeatendimento-homolog.totvs.com",
+    "https://cstsandbox.zendesk.com",
+    "https://centraldeatendimento-homolog.fluig.com"
+]
+CST_CONFIGS.local_url = 'https://localhost:4010';
+
+var win_location = window.location.origin;
+CST_CONFIGS.env = CST_CONFIGS.homolog_url.indexOf(win_location) != -1 ? "homolog" : win_location.indexOf(CST_CONFIGS.local_url) == 0 ? "localhost" : "prod";
+
+CST_CONFIGS.baseAtiva = true;
+CST_CONFIGS.url_white_list = ['home', 'search', 'emailconfirmation'];
+
+CST_CONFIGS.catalogoVone = CST_CONFIGS.env == 'prod' ? 'https://catalogoproducaorenove.azurewebsites.net' : 'https://catalogohomologrenovebr.azurewebsites.net';
+
+CST_CONFIGS.pcSistemasUrl = CST_CONFIGS.env == 'prod' ? 'https://mid.totvs.com:8087/pcsistemas/tickets' : 'https://mid-homolog.totvs.com:4019/pcsistemas/tickets';
+
+var CATALOGPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/catalogo-totvs/back/api/" : "https://ti-services-homolog.totvs.com.br/catalogo-totvs/back/api/";
+
+var baseCentralizada = CST_CONFIGS.env == 'prod' ? "https://mid.totvs.com:450" : "https://mid-homolog.totvs.com:4009";
+
+var MIDWAREPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/cst" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:4010' : "https://ti-services-homolog.totvs.com.br/cst";
+
+var MIDDLEWAREPATH = CST_CONFIGS.env == 'prod' ? "https://mid.totvs.com" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:443' : "https://mid-homolog.totvs.com";
+
+var URLSUPORTETOTVS = CST_CONFIGS.env == 'prod' ? "https://suporte.totvs.com/portal/p/10098" : "http://suportep12.totvs.com/portal/p/10098";
+
+var CENTRALBASE = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/api/v1/centralbase" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:4010' : "https://ti-services-homolog.totvs.com.br/api/v1/centralbase";
+
+var VTEXPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/vtex" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:4020' : "https://jv-ti-prt03.jv01.local/vtex";
+
+var SELFSERVICEPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/api/v1/selfservice" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:4020' : "https://ti-services-homolog.totvs.com.br/api/v1/selfservice";
+
+var CUSTOMERPORTFOLIOPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/customer-portfolio/back" : CST_CONFIGS.env == 'localhost' ? 'https://localhost:8098' : "https://mid-homolog.totvs.com:8098";
+
+var CENTRALDEATENDIMENTO = CST_CONFIGS.env == 'prod' ? "https://centraldeatendimento.totvs.com" : "https://centraldeatendimento-homolog.totvs.com";
+
+var CHATBOTPATH = CST_CONFIGS.env == 'prod' ? "https://ti-services.totvs.com.br/chatbot-portal-cliente/chat" : CST_CONFIGS.env == 'localhost' ? 'http://localhost:4038/chat' : "https://ti-services-homolog.totvs.com.br/chatbot-portal-cliente/chat";
+
+var _configs =
+{
+    "termo_aceite_lgpd": {
+        "obrigatorio": true
+    },
+    "homolog": {
+        "check_user_url": "https://totvssuporte1458432501.zendesk.com",
+        "brands": {
+            "totvs": 1339048,
+            "cst": 7539207,
+            "interno": 980567
+        },
+        "users": {
+            "cobranca": 5587562718,
+            "adm_portal": 6106741757
+        },
+        "formsCustomLink": {
+            "default": "https://cstsandbox.zendesk.com",
+            "308647": "https://centraldeatendimento-homolog.totvs.com",
+            "485348": "https://centraldeatendimento-homolog.totvs.com"
+        },
+        "forms": {
+            "cst": 762548,
+            "suporte_tecnico": 308647,
+            "ouvidoria": 294128,
+            "sac_fly01": 294208,
+            "cloud": '308647&zcloud=true',
+            "cloudBasic": 485348,
+            "centro_servicos": 762548,
+            "universidade": 360000204751,
+            "drg_totvs": 360000203531,
+            "ti": 360002026954,
+            "gcad": 1500000228121
+        },
+        "fields": {
+            "PAIS": {
+                "id": 73840427,
+                "keys": {
+                    "brasil": "jira_pais:_brasil"
+                }
+            },
+            "AGRUPADOR_DE_SERVICOS": {
+                "id": 41329788,
+                "keys": {
+                    "administrativo": "jira_agrupador_de_servicos:_administrativo:_id_2404936"
+                }
+            },
+            "MODULO": {
+                "id": 41420947,
+                "keys": {
+                    "hardlock_fisico": "jira_modulo:_hardlock_fisico:_id_2405164"
+                }
+            },
+            "PRODUTO": {
+                "id": 41420927,
+                "keys": {
+                    "liberacao_de_acessos": "jira_produto:_liberacao_de_acessos:_id_2404974"
+                }
+            },
+            "AGRUPADOR_DE_ROTINA": {
+                "id": 47625547
+            },
+            "CATALOGOV2_PAIS": {
+                "id": 81158148,
+                "keys": {
+                    "brasil": "pais:brasil"
+                }
+            },
+            "CATALOGOV2_AGRUPADOR_DE_SERVICO": {
+                "id": 80770307,
+                "keys": {
+                    "administrativo": "agrupador_de_servico:administrativo"
+                }
+            },
+            "CATALOGOV2_PRODUTO": {
+                "id": 80770327,
+                "keys": {
+                    "cadastros": "cadastros",
+                    "liberacao_de_acessos": "liberacao_de_acessos",
+                    "boleto": "boleto",
+                    "relatorio_consulta": "produto:relatorios_consulta",
+                    "contratos": "produto:contratos",
+                    "notafiscal": "nota_fiscal"
+                }
+            },
+            "CATALOGOV2_MODULO": {
+                "id": 81157988,
+                "keys": {
+                    "clientes": "clientes",
+                    "hardlock_fisico": "hardlock_fisico",
+                    "liberacao_arquivo_chave_emergencial": "modulo:liberacao_arquivo_chave_emergencial",
+                    "segunda_via_boleto": "2ª_via_de_boleto",
+                    "prorrogacao_boleto": "prorrogacao_de_boleto",
+                    "pendencias_financeiras": "pendencias_financeiras",
+                    "comprovacao_metrica": "comprovacao_metrica",
+                    "avaliacao_contratual": "avaliacao_contratual",
+                    "exclusao_empresa": "exclusao_empresa",
+                    "informe_metrica": "informe_metrica",
+                    "memoria_calculo": "memoria_calculo",
+                    "transferencia_licencas": "transferencia_licencas",
+                    "segunda_via_nota_fiscal": "2\u00AA_via_de_nota_fiscal",
+                    "esclarecimento_nota_fiscal": "esclarecimento_nota_fiscal"
+                }
+            },
+            "CATALOGOV2_AGRUPADOR_DE_ROTINA": {
+                "id": 80770347,
+                "keys": {
+                    "alterar_dados_cadastrais": "alterar_dados_cadastrais",
+                    "titulos_vencidos": "titulos_vencidos"
+                }
+            },
+            "CATALOGOV2_ROTINA": {
+                "id": 81158048
+            },
+            "CATALOGOV2_CODIGO_DE_ROTINA": {
+                "id": 81158168
+            },
+            "CATALOGOV2_DESCRICAO_DA_ROTINA": {
+                "id": 81158188
+            },
+            "CATALOGOV3_PAIS": {
+                "id": 360054678813
+            },
+            "CATALOGOV3_PRODUTO": {
+                "id": 360051812873
+            },
+            "CATALOGOV3_MODULO": {
+                "id": 360051813033
+            },
+            "CATALOGOV3_AGRUPADOR_DE_ROTINA": {
+                "id": 360051813053
+            },
+            "CATALOGOV3_ROTINA": {
+                "id": 1500002780001
+            },
+            "CATALOGOV3_ATENDIMENTO_BSO": {
+                "id": 1500001678182
+            },
+            "CATALOGOV3_CLOUD_CONTRATO": {
+                "id": 1500001937422
+            },
+            "CATALOGOV3_CLOUD_AGRUPADOR_DE_AREA": {
+                "id": 360051812853
+            },
+            "CATALOGOV3_DIRECIONA_FABRICA_SW": {
+                "id": 360044489134
+            },
+            "CATALOGOV3_AMBIENTE": {
+                "id": 41697567
+            },
+            "CATALOGOV3_VERSAO": {
+                "id": 41697407
+            },
+            "SOLICITACAO_CUSTOMIZACAO": {
+                "id": 46078487
+            },
+            "LGPD_ACEITE_PALAVRAS_RESTRITAS": {
+                "id": 1500006833082,
+                "label": "LGPD | Aceite palavras restritas"
+            }
+        },
+        "groups": {
+            "senhas": 41215087,
+            "cadastro_assessoria": 360004950612,
+            "cobranca": 41214727,
+            "contrato_de_vendas": 41582608,
+            "cst_caixa_bancos": 41257368,
+            "faturamento": 41214807,
+            "cst_atendimento": 41214707
+        },
+        "catalog_v1": {
+            "brand_totvs": {
+                "id": 2402936,
+                "tag": 1339048
+            },
+            "pais_brasil": {
+                "id": 2313312,
+                "tag": "2313312|jira_pais:_brasil:_id_2313312"
+            },
+            "agrup_serv_software": {
+                "id": 2313320,
+                "tag": "2313320|jira_agrupador_de_servicos:_software:_id_2401858"
+            },
+            "agrup_serv_cloud": {
+                "id": 2313321,
+                "tag": "2313321|jira_agrupador_de_servicos:_cloud_computing:_id_2313321"
+            },
+            "produto_virtual_age": {
+                "id": 2402962,
+                "tag": "2402962|jira_produto:_virtual_age_by_totvs:_id_2402961"
+            },
+            "produto_bemacash_vest": {
+                "id": 2402966,
+                "tag": "2402966|jira_produto:_bemacash_vestuario:_id_2402965"
+            },
+            "produto_cmnet_reservas": {
+                "id": 2403372,
+                "tag": "2403372|jira_produto:_cmnet_reservas:_id_2403371"
+            },
+            "produto_hotal_full": {
+                "id": 2403272,
+                "tag": "2403272|jira_produto:_hotal_full:_id_2403271"
+            },
+            "produto_hotal_special": {
+                "id": 2403371,
+                "tag": "2403371|jira_produto:_hotal_special:_id_2403370"
+            },
+            "produto_hotel_full": {
+                "id": 2404900,
+                "tag": "2404900|jira_produto:_hotel_full:_id_2404899"
+            },
+            "produto_taf": {
+                "id": 0,
+                "tag": ""
+            },
+            "produto_tss": {
+                "id": 0,
+                "tag": ""
+            },
+            "versao_protheus_12_1_17": {
+                "id": 0,
+                "tag": 'jira_versao_cliente:_protheus:_microsiga_protheus_versao_12_1_17'
+            },
+            "combo_pais_onda3": 360010222431, //Utilizado o mesmo códido da lista suspensa O3|Pais
+            "combo_agrup_serv": 41329788,
+            "combo_produto": 41420927,
+            "combo_modulo": 41420947,
+            "combo_agrup_rotina": 47625547,
+            "combo_rotina": 41386988,
+            "combo_tipo_solicitacao": 41757708,
+            "combo_aceite_consultoria": 41840727,
+            "combo_pais_o3": 73840427,
+            "combo_impacto": 33230207,
+            "combo_ambiente": 41697567,
+            "combo_produtos_cloud": 360000088588,
+            "combo_ambientes_cloud": 360000084907,
+            "combo_agrup_rotinas_cloud": 47625547,
+            "combo_tipo_ticket_ouvidoria": 39660708,
+            "combo_produtos_ouvidoria": 39789567,
+            "combo_catalogo_sacfly01": 33005628,
+            "txt_num_empresa_virtual_age": 81021588,
+            "txt_versao_cmnet": 80458747,
+            "combo_versao": 41697407,
+            "txt_modulo_skill": 360012513711,
+            "num_qtd_agenda": 360012468132,
+            "exp_horario_agenda": 360012468152,
+            "txt_nome_telefone_contato": 360012468192,
+            "combo_aceita_atividade_remota": 360012468212,
+            "txt_endereco_atendimento": 360012513911,
+            "combo_necessario_viagem": 360012468232,
+            "combo_marca": 41329608,
+            "combo_linha_taf": 360010111632,
+            "combo_processo": 41421107,
+            "path_script": 'https://ti-services-homolog.totvs.com.br/cst/refact/javascripts/catalogoVone.js'
+        },
+        "catalog_v2": {
+            "combo_modulo": 81157988,
+            "combo_produto": 80770327,
+            "combo_agrup_serv": 80770307,
+            "combo_motivo_cancelamento": 81221187,
+            "path_script_auto_contido_js": 'https://mid-homolog.totvs.com:4007/javascripts/script_auto_contido.js',
+            "path_script_auto_contido_css": 'https://mid-homolog.totvs.com:4007/css/script_auto_contido.css'
+        },
+        "catalog_v3": {
+            "path_script": 'https://ti-services-homolog.totvs.com.br/cst/refact/javascripts/new-catalog.js',
+            "check_prime_nova_oferta": 360043146613,
+            "routineGroup": 360051813053,
+            "module": 360051813033
+        },
+        "brands_id": {
+            "totvs": 2402936
+        },
+        "brands_id_by_host": {
+            "atendimento-homolog.totvs.com": 2402937,
+            "centraldeatendimento-homolog.totvs.com": 2402936
+        },
+        "fields_customized": {
+            "41329608-setup": "addbrand",
+            "360010222431-setup": "setupcountry",
+            "41329788-select": "sortservices",
+            "41420927-change": "changeproduct",
+            "41420927-setup": "setupproduct",
+        },
+        "vtex": {
+            "host": "https://ti-services-homolog.totvs.com.br"
+        },
+        "logo": {
+            "TOTVS": "https://ti-services-homolog.totvs.com.br/cst/img/LOGO-TOTVS.png",
+            "VTEX": "https://ti-services-homolog.totvs.com.br/cst/img/LOGO-TOTVS-VTEX.png"
+        },
+        "carol": {
+            "organization": "totvs",
+            "organization_id": "82a77c960eae4cab82639420b6d9b11d",
+            "environment": "protheusassistant",
+            "environment_id": "27835e670bc047b8825ebd0206fde6d7",
+            "token": "pJUoRA2hqFdQAz7XPlHCelIt56MPEm9BEn-6Hzu4pUE",
+            "draft_environment": true,
+            "uri": "https://protheusassistant-carolinasupporthml.apps.carol.ai/"
+        }
+    },
+
+    "prod": {
+        "check_user_url": "https://totvssuporte.zendesk.com",
+        "brands": {
+            "totvs": 1509248,
+            "cst": 7706267,
+            "interno": 753138
+        },
+        "users": {
+            "cobranca": 6318572448,
+            "adm_portal": 8783756928
+        },
+        "formsCustomLink": {
+            "default": "https://totvscst.zendesk.com",
+            "368847": "https://centraldeatendimento.totvs.com",
+            "469848": "https://centraldeatendimento.totvs.com"
+        },
+        "forms": {
+            "cst": 893668,
+            "suporte_tecnico": 368847,
+            "ouvidoria": 351108,
+            "sac_fly01": 259667,
+            "cloud": 469848,
+            "centro_servicos": 893668,
+            "cloudBasic": 469848,
+            "universidade": 360000197231,
+            "drg_totvs": 360000182871,
+            "ti": 360002106414,
+            "gcad": 393087
+        },
+        "fields": {
+            "PAIS": {
+                "id": 46876187,
+                "keys": {
+                    "brasil": "jira_pais:_brasil"
+                }
+            },
+            "AGRUPADOR_DE_SERVICOS": {
+                "id": 46074507,
+                "keys": {
+                    "administrativo": "jira_agrupador_de_servicos:_administrativo:_id_2404936"
+                }
+            },
+            "MODULO": {
+                "id": 45989768,
+                "keys": {
+                    "hardlock_fisico": "jira_modulo:_hardlock_fisico:_id_2405164"
+                }
+            },
+            "PRODUTO": {
+                "id": 46074547,
+                "keys": {
+                    "liberacao_de_acessos": "jira_produto:_liberacao_de_acessos:_id_2404974"
+                }
+            },
+            "AGRUPADOR_DE_ROTINA": {
+                "id": 46623108
+            },
+            "CATALOGOV2_PAIS": {
+                "id": 81315668,
+                "keys": {
+                    "brasil": "pais:brasil"
+                }
+            },
+            "CATALOGOV2_AGRUPADOR_DE_SERVICO": {
+                "id": 81315648,
+                "keys": {
+                    "administrativo": "agrupador_de_servico:administrativo"
+                }
+            },
+            "CATALOGOV2_PRODUTO": {
+                "id": 81315728,
+                "keys": {
+                    "cadastros": "cadastrosv2",
+                    "liberacao_de_acessos": "liberacao_de_acessos",
+                    "boleto": "boleto",
+                    "relatorio_consulta": "produto:relatorios_consulta",
+                    "contratos": "produto:contratos",
+                    "pendencias": "pagamentos",
+                    "notafiscal": "nota_fiscal"
+                }
+            },
+            "CATALOGOV2_MODULO": {
+                "id": 80926647,
+                "keys": {
+                    "clientes": "modulo:clientes_cadastros",
+                    "hardlock_fisico": "hardlock_fisico",
+                    "liberacao_arquivo_chave_emergencial": "modulo:liberacao_arquivo_chave_emergencial",
+                    "segunda_via_boleto": "2\u00AA_via_de_boleto",
+                    "prorrogacao_boleto": "prorrogacao_de_boleto",
+                    "pendencias_financeiras": "pendencias_financeiras",
+                    "comprovacao_metrica": "comprovacao_metrica",
+                    "avaliacao_contratual": "avaliacao_contratual",
+                    "exclusao_empresa": "exclusao_empresa",
+                    "informe_metrica": "informe_metrica",
+                    "memoria_calculo": "memoria_calculo",
+                    "transferencia_licencas": "transferencia_licencas",
+                    "segunda_via_nota_fiscal": "2\u00AA_via_de_nota_fiscal",
+                    "pendencias": "comprovacao_de_pagamento",
+                    "esclarecimento_nota_fiscal": "esclarecimento_nota_fiscal"
+                }
+            },
+            "CATALOGOV2_AGRUPADOR_DE_ROTINA": {
+                "id": 80926587,
+                "keys": {
+                    "alterar_dados_cadastrais": "alterar_dados_cadastrais",
+                    "titulos_vencidos": "titulos_vencidos"
+                }
+            },
+            "CATALOGOV2_ROTINA": {
+                "id": 81158048
+            },
+            "CATALOGOV2_CODIGO_DE_ROTINA": {
+                "id": 81158168
+            },
+            "CATALOGOV2_DESCRICAO_DA_ROTINA": {
+                "id": 81158188
+            },
+            "CATALOGOV3_PAIS": {
+                "id": 360054772693
+            },
+            "CATALOGOV3_PRODUTO": {
+                "id": 360051815293
+            },
+            "CATALOGOV3_MODULO": {
+                "id": 360050857934
+            },
+            "CATALOGOV3_AGRUPADOR_DE_ROTINA": {
+                "id": 360050858094
+            },
+            "CATALOGOV3_ROTINA": {
+                "id": 1500002995682
+            },
+            "CATALOGOV3_ATENDIMENTO_BSO": {
+                "id": 1500003090682
+            },
+            "CATALOGOV3_CLOUD_CONTRATO": {
+                "id": 1500003129821
+            },
+            "CATALOGOV3_CLOUD_AGRUPADOR_DE_AREA": {
+                "id": 360050857754
+            },
+            "CATALOGOV3_DIRECIONA_FABRICA_SW": {
+                "id": 1500003147541
+            },
+            "CATALOGOV3_AMBIENTE": {
+                "id": 45984988
+            },
+            "CATALOGOV3_VERSAO": {
+                "id": 46075607
+            },
+            "SOLICITACAO_CUSTOMIZACAO": {
+                "id": 46078487
+            },
+            "LGPD_ACEITE_PALAVRAS_RESTRITAS": {
+                "id": 1500006860782,
+                "label": "LGPD | Aceite palavras restritas"
+            }
+        },
+        "groups": {
+            "senhas": 43855028,
+            "cadastro_assessoria": 360004868332,
+            "cobranca": 43815907,
+            "contrato_de_vendas": 43815967,
+            "pendencias": 43854948,
+            "cst_caixa_bancos": 43854948,
+            "faturamento": 43815987,
+            "cst_atendimento": 43815867
+        },
+        "catalog_v1": {
+            "brand_totvs": {
+                "id": 2694920,
+                "tag": "2694920|jira_marca:_totvs:_id_2694920"
+            },
+            "pais_brasil": {
+                "id": 2694927,
+                "tag": "2694927|jira_pais:_brasil:_id_2694927"
+            },
+            "agrup_serv_software": {
+                "id": 2694935,
+                "tag": "2694935|jira_agrupador_de_servicos:_software:_id_2694935"
+            },
+            "agrup_serv_cloud": {
+                "id": 2694938,
+                "tag": "2694938|jira_agrupador_de_servicos:_cloud_computing:_id_2694938"
+            },
+            "produto_virtual_age": {
+                "id": 2791938,
+                "tag": "2791938|jira_produto:_virtual_age_by_totvs:_id_2791937"
+            },
+            "produto_bemacash_vest": {
+                "id": 2792244,
+                "tag": "2792244|jira_produto:_bemacash_vestuario:_id_2792243"
+            },
+            "produto_cmnet_reservas": {
+                "id": 2793616,
+                "tag": "2793616|jira_produto:_cmnet_reservas:_id_2793615"
+            },
+            "produto_hotal_full": {
+                "id": 2793600,
+                "tag": "2793600|jira_produto:_hotal_full:_id_2793599"
+            },
+            "produto_hotal_special": {
+                "id": 2793615,
+                "tag": "2793615|jira_produto:_hotal_special:_id_2793614"
+            },
+            "produto_hotel_full": {
+                "id": 2794821,
+                "tag": "2794821|jira_produto:_hotel_full:_id_2794820"
+            },
+            "produto_taf": {
+                "id": 2799311,
+                "tag": "jira_produto:_taf:_id_2799310"
+            },
+            "produto_tss": {
+                "id": 2694971,
+                "tag": "jira_produto:_tss:_id_2605545"
+            },
+            "versao_protheus_12_1_17": {
+                "id": 0,
+                "tag": 'jira_versao_cliente:_protheus:_microsiga_protheus_versao_12_1_17'
+            },
+            "combo_pais_onda3": 45990448,
+            "combo_agrup_serv": 46074507,
+            "combo_produto": 46074547,
+            "combo_modulo": 45989768,
+            "combo_agrup_rotina": 46070907,
+            "combo_rotina": 45991288,
+            "combo_tipo_solicitacao": 46069927,
+            "combo_aceite_consultoria": 45986708,
+            "combo_pais_o3": 46876187,
+            "combo_impacto": 46068867,
+            "combo_ambiente": 45984988,
+            "combo_produtos_cloud": 46708347,
+            "combo_ambientes_cloud": 46623088,
+            "combo_agrup_rotinas_cloud": 46623108,
+            "combo_tipo_ticket_ouvidoria": 39659988,
+            "combo_produtos_ouvidoria": 39685708,
+            "combo_catalogo_sacfly01": 35471668,
+            "txt_num_empresa_virtual_age": 78575148,
+            "txt_versao_cmnet": 80485187,
+            "combo_versao": 46075607,
+            "txt_modulo_skill": 360011722471,
+            "num_qtd_agenda": 360011651112,
+            "exp_horario_agenda": 360011722631,
+            "txt_nome_telefone_contato": 360011651272,
+            "combo_aceita_atividade_remota": 360011651292,
+            "txt_endereco_atendimento": 360011651472,
+            "combo_necessario_viagem": 360011722651,
+            "combo_marca": 79258787,
+            "combo_linha_taf": 360005009452,
+            "combo_processo": 46070907,
+            "path_script": 'https://ti-services.totvs.com.br/cst/refact/javascripts/catalogoVone.js'
+        },
+        "catalog_v2": {
+            "combo_modulo": 80926647,
+            "combo_produto": 81315728,
+            "combo_agrup_serv": 81315648,
+            "combo_motivo_cancelamento": 360015874412,
+            "path_script_auto_contido_js": 'https://ti-services.totvs.com.br/catalogov2/javascripts/script_auto_contido.js',
+            "path_script_auto_contido_css": 'https://ti-services.totvs.com.br/catalogov2/css/script_auto_contido.css'
+        },
+        "catalog_v3": {
+            "path_script": 'https://ti-services.totvs.com.br/cst/refact/javascripts/new-catalog.js',
+            "check_prime_nova_oferta": 360044536533,
+            "routineGroup": 360050858094,
+            "module": 360050857934
+        },
+        "brands_id": {
+            "totvs": 2694920
+        },
+        "brands_id_by_host": {
+            "atendimento.totvs.com": 2694921,
+            "centraldeatendimento.totvs.com": 2694920
+        },
+        "fields_customized": {
+            "79258787-setup": "addbrand",
+            "45990448-setup": "setupcountry",
+            "46074507-select": "sortservices",
+            "46074547-change": "changeproduct",
+            "46074547-setup": "setupproduct",
+        },
+        "vtex": {
+            "host": "https://ti-services.totvs.com.br/vtex"
+        },
+        "logo": {
+            "TOTVS": "https://ti-services.totvs.com.br/cst/img/LOGO-TOTVS.png",
+            "VTEX": "https://ti-services.totvs.com.br/cst/img/LOGO-TOTVS-VTEX.png"
+        },
+        "carol": {
+            "organization": "totvs",
+            "organization_id": "82a77c960eae4cab82639420b6d9b11d",
+            "environment": "protheusassistant",
+            "environment_id": "27835e670bc047b8825ebd0206fde6d7",
+            "token": "pJUoRA2hqFdQAz7XPlHCelIt56MPEm9BEn-6Hzu4pUE",
+            "draft_environment": false,
+            "uri": "https://protheusassistant-carolinasupportprd.apps.carol.ai/"
+        }
+    }
+};
+
+
+var _idioma_placeholders =
+{
+    "pt-br": {
+        "cancelar": "Cancelar",
+        "ocorreu_um_erro_tente_novamente": "Ocorreu um erro. Por favor tente novamente.",
+        "erro_de_conexao": "Erro de conexão",
+        "nova_solicitacao_registrada": "Nova solicitação registrada",
+        "solicitacao_ticket_aberta": "A solicitação #{ticket_id} foi aberta!",
+        "ocorreu_em_sua_solicitacao_ticket_uma_atualizacao": "Ocorreu em sua solicitação #{ticket_id} uma atualização.",
+        "sua_solicitacao_ticket_esta_aguardando_seu_retorno_nao_deixe_de_nos_responder": "A solicitação #{ticket_id} está aguardando seu retorno, não deixe de nos responder!",
+        "ticket_resolvido": "Validação Cliente!",
+        "sua_solicitacao_ticket_foi_resolvida": "Sua solicitação #{ticket_id} foi resolvida.",
+        "solicitacao_fechada": "Solicitação fechada!",
+        "solicitacao_ticket_foi_fechada": "A solicitação #{ticket_id} foi fechada!",
+        "pesquisa_satisfacao": "Pesquisa de satisfação",
+        "pesquisa_satisfacao_ticket_disponivel": "Pesquisa de satisfação da solicitação #{ticket_id} disponível!",
+        "atualizacao_de_solicitacao": "Atualização de solicitação",
+        "aguardamos_seu_retorno": "Aguardamos seu retorno",
+        "detalhes": "Detalhes",
+        "cnpj": "CNPJ",
+        "data_inicial_menor_que_final": "Datas inválidas! Data inicial deve ser menor do que a data final.",
+
+        //consulta_impressao
+        "nenhum_resultado_encontrado": "Nenhum resultado encontrado.",
+        "por_favor_informe_intervalo_valido": "Por favor informe um intervalo válido!",
+        "periodo_superior_6_meses_abrir_solicitacao": "Para um período superior a 6 meses, por favor siga para a <a target='_blank' href='/hc/requests/new'><u>abertura de solicitação!</u></a>",
+        "digite_numero_do_boleto": "Por favor, digite o número do boleto.",
+        "digite_numero_rps": "Por favor, digite o número RPS.",
+        "digite_numero_nf": "Por favor, digite o número da nota fiscal.",
+        "selecione_pelo_menos_um_tipo_de_documento": "Selecione pelo menos um tipo de documento.",
+        "email_enviado": "E-mail enviado para {user_email}\n\nSolicitação: {ticket_id}",
+        "nao_solicitado": "Não solicitado",
+        "titulo_numero": "Título Número",
+        "descricao": "Descrição",
+        "parcela": "Parcela",
+        "empresa_prestadora": "Empresa Prestadora",
+        "cnpj_prestadora": "CNPJ Prestadora",
+        "num_nota_fiscal_eletronica": "Num. Nota Fiscal Eletrônica",
+        "vencimento": "Vencimento",
+        "emissao": "Emissão",
+        "nome_comercial_do_cliente": "Nome Comercial do Cliente",
+        "prefixo": "Prefixo",
+        "tipo": "Tipo",
+        "valor_nota_fiscal": "Valor Nota Fiscal",
+        "valor_boleto": "Valor Boleto",
+        "ir": "IR",
+        "pis": "PIS",
+        "cofins": "COFINS",
+        "csll": "CSLL",
+        "inss": "INSS",
+        "iss": "ISS",
+        "observacao": "Observação",
+        "solicitacao_ticket_gerada_com_sucesso": "Solicitação: <b>{ticket_id}</b> gerada com sucesso!",
+        "dados_invalidos": "Dados Inválidos!",
+
+        //consulta pendencias
+        "imprimir": "Imprimir",
+        "enviar_por_email": "Enviar por e-mail",
+        "nao_ha_informacoes_disponiveis_para_empresa_selecionada": "Não há informações disponíveis para a empresa utilizada!",
+
+        //extrato_cobranca
+        "baixar_arquivo_csv": "Baixar arquivo CSV",
+        "mercadorias": "Mercadorias",
+        "servicos": "Serviços",
+        "colaboracao": "Colaboração",
+        "total": "Total",
+        "qtd_nf_mercadorias": "Qtd. NF mercadorias",
+        "qtd_nf_servicos": "Qtd. NF serviços",
+        "qtd_nf_colaboracao": "Qtd. NF colaboração",
+        "qtd_nf_total": "Qtd. NF total",
+        "visualizar_totalizadores": "Visualizar totalizadores",
+        "producao": "Produção",
+        "homologacao": "Homologação",
+        "teste": "Teste",
+        "memoria_nao_encontrada": "Memória não encontrada.",
+
+        //memorias de calculo
+        "sem_sugestoes": "Sem sugestões",
+
+        //transferencia faturamento
+        "caro_cliente_as_solicitacoes_de_transferencia": "Caro cliente, as solicitações de transferência de licenças devem ser tratadas diretamente com o Executivo de Atendimento e Relacionamento (EAR) através dos seguintes canais:",
+        "nome_do_ear": "Nome do EAR",
+        "telefone": "Telefone",
+        "transferencia_faturamento_response": "Após contato com o EAR será necessário abrir um chamado com a carta de transferência em anexo.<br><br>Para efetivação do processo, o documento original deverá ser encaminhado para o endereço da TOTVS S.A. que consta na carta. <b><a href='{cartaUrl}'>Clique aqui para baixar a Carta Padrão.</a></b><br><br>O documento deve ser em papel timbrado, assinado pelo responsável legal da empresa e com firma reconhecida, especificando o motivo do pleito e descrevendo as propostas, as licenças e quantidades que devem ser transferidas.<br><br>Caso já tenha realizado o procedimento acima, <b><a href='/hc/requests/new'>clique aqui</a></b> e realize a abertura do chamado.",
+
+        //minhas solicitacoes
+        "minhas_solicitacoes": "Minhas solicitações",
+        "solicitacoes_nas_quais_estou_em_copia": "Solicitações nas quais estou em cópia",
+        "solicitacoes_da_organizacao": "Solicitações da organização",
+        "solicitacoes_da_franquia": "Gestão Cliente Franqueador",
+        "status": "Status",
+        "type": "Tipo",
+        "organizacao": "Organização",
+        "produto": "Produto",
+        "modulo": "Módulo/Solicitação",
+        "agrupador_de_rotina": "Agrupador de Rotina/Item",
+        "nome_ou_email": "Nome ou e-mail",
+        "criado": "Criado",
+        "ultima_atualizacao": "Última atualização",
+        "solicitante": "Solicitante",
+        "assunto": "Assunto",
+        "limpar_filtros": "Limpar filtros",
+        "resultados_para": "resultados para",
+        "exportar_pagina_atual": "Exportar página atual",
+        "clique_aqui_para_enviar_o_resultado_completo_por_e-mail": "Clique aqui para enviar o resultado completo por e-mail",
+        "sua_solicitacao_esta_sendo_processada_e_sera_enviada_em_breve": "Sua solicitação está sendo processada e será enviada em breve",
+        "abrir_nova_solicitacao": "Abrir nova solicitação",
+        "favor_preencher_o_campo_organizacao": "O campo \"Organizações\" é obrigatório",
+        "preencher_data_obrigatorio": "O preenchimento de um intervalo de data é obrigatório",
+
+        //extras
+        "nao_mostrar_novamente": "Não mostrar novamente",
+        "sua_solicitacao_foi_processada_com_sucesso_para_sua_seguranca_foi_enviado_um_email": "Sua solicitação foi processada com sucesso, para sua segurança foi enviado um e-mail para {mail} com a senha gerada. Solicitação:{ticket_id}",
+        "falha_na_geracao_do_arquivo": "Falha na geração do arquivo <br/> Por favor entre em contato através do telefone 4003-0015 ou <a href='/hc/requests/new' target='_blank'>clique aqui</a> para abrir uma solicitação.",
+        "hardlock_copiado_com_sucesso": "Hardlock copiado com sucesso!",
+        "selecione_uma_data_de_liberacao": "Selecione uma data de liberação.",
+        "cnpj_invalido": "CNPJ inválido!",
+        "chave_de_emergencia_copiada_com_sucesso": "Chave de emergência copiada com sucesso!",
+        "chave_de_emergencia": "Chave de emergência",
+        "email_documentos_body": "Olá {userName},\nSolicitação para registro do arquivo\documento solicitado:\n\n RPS: {rps}\n Boleto: {boleto}\n Nota Fiscal: {nf}\nGuia de relacionamento:{guiarelacionamento}\n\n Lembramos que não será possível realizar interações nesta solicitação, ela é apenas um registro do seu autoatendimento.\n\n Equipe Totvs \n",
+        "erro_na_solicitacao": "Erro na solicitação",
+        "enviar_dados_para_aprovacao": "Enviar dados para aprovação",
+        "confirma_alteracao_endereco_principal": "Confirma a alteração do endereço principal?",
+        "confirma_alteracao_endereco_cobranca": "Confirma a alteração do endereço de cobrança?"
+    },
+    "en-us": {
+        "cancelar": "Cancel",
+        "ocorreu_um_erro_tente_novamente": "An error occurred. Try again.",
+        "erro_de_conexao": "Connection error.",
+        "nova_solicitacao_registrada": "New request registered",
+        "solicitacao_ticket_aberta": "The request #{ticket_id} was opened!",
+        "ocorreu_em_sua_solicitacao_ticket_uma_atualizacao": "Your request #{ticket_id} was updated.",
+        "sua_solicitacao_ticket_esta_aguardando_seu_retorno_nao_deixe_de_nos_responder": "The request #{ticket_id} is waiting your return response, do not forget to answer!",
+        "ticket_resolvido": "Ticket Solved!",
+        "sua_solicitacao_ticket_foi_resolvida": "Your ticket #{ticket_id} was solved.",
+        "solicitacao_fechada": "Request closed!",
+        "solicitacao_ticket_foi_fechada": "The request #{ticket_id} was closed!",
+        "pesquisa_satisfacao": "Satisfaction survey",
+        "pesquisa_satisfacao_ticket_disponivel": "Satisfaction survey of request #{ticket_id} available!",
+        "atualizacao_de_solicitacao": "Updating request",
+        "aguardamos_seu_retorno": "We are waiting for your return response",
+        "detalhes": "Details",
+        "cnpj": "CNPJ",
+        "data_inicial_menor_que_final": "Invalid dates! Initial date must be shorter than end date.",
+
+        //consulta_impressao
+        "nenhum_resultado_encontrado": "No result was found.",
+        "por_favor_informe_intervalo_valido": "Enter a valid interval.",
+        "periodo_superior_6_meses_abrir_solicitacao": "For a period later than 6 months, please go to <a target='_blank' href='/hc/requests/new'><u>opening of request!</u></a>",
+        "digite_numero_do_boleto": "Enter the bill number.",
+        "digite_numero_rps": "Enter the RPS number.",
+        "digite_numero_nf": "Enter the invoice number.",
+        "selecione_pelo_menos_um_tipo_de_documento": "Select at least one type of document.",
+        "email_enviado": "E-mail sent to {user_email}\n\nRequest: {ticket_id}",
+        "nao_solicitado": "Not requested.",
+        "titulo_numero": "Bill Number",
+        "descricao": "Description",
+        "parcela": "Installment",
+        "empresa_prestadora": "Provider",
+        "cnpj_prestadora": "CNPJ of Provider",
+        "num_nota_fiscal_eletronica": "Number of Electronic Invoice",
+        "vencimento": "Due Date",
+        "emissao": "Issuance",
+        "nome_comercial_do_cliente": "Customer's Trade Name",
+        "prefixo": "Prefix",
+        "tipo": "Type",
+        "valor_nota_fiscal": "Invoice amount",
+        "valor_boleto": "Bill amount",
+        "valor_baixa": "Write-off amount",
+        "ir": "Income Tax",
+        "pis": "PIS",
+        "cofins": "COFINS",
+        "csll": "CSLL",
+        "inss": "INSS",
+        "iss": "ISS",
+        "observacao": "Note",
+        "solicitacao_ticket_gerada_com_sucesso": "Request: <b>{ticket_id}</b> generated with success!",
+        "dados_invalidos": "Invalid data!",
+
+        //consulta pendencias
+        "imprimir": "Print",
+        "enviar_por_email": "Send by e-mail",
+        "nao_ha_informacoes_disponiveis_para_empresa_selecionada": "No information available for the company that was used.",
+
+        //extrato_cobranca
+        "baixar_arquivo_csv": "Download CSV file",
+        "mercadorias": "Goods",
+        "servicos": "Services",
+        "colaboracao": "Colaboration",
+        "total": "Total",
+        "qtd_nf_mercadorias": "Amt. Invoice goods",
+        "qtd_nf_servicos": "Amt. Invoice services",
+        "qtd_nf_colaboracao": "Amt. Invoice collaboration",
+        "qtd_nf_total": "Amt. Invoice total",
+        "visualizar_totalizadores": "View totalizers",
+        "producao": "Production",
+        "homologacao": "Homologação",
+        "teste": "Test",
+        "memoria_nao_encontrada": "Memory not found.",
+
+        //memorias de calculo
+
+        "sem_sugestoes": "No suggestions",
+
+        //transferencia faturamento
+        "caro_cliente_as_solicitacoes_de_transferencia": "Dear customer, the requests for license transfer must be discussed directly with the Service and Relationship Executive (SRE) through the following channels:",
+        "nome_do_ear": "SRE Name",
+        "telefone": "Phone number",
+        "transferencia_faturamento_response": "After contacting the SRE, open a ticket with attached transfer letter.<br><br>To execute process, the original document must be followed for TOTVS address that is in the letter. <b><a href='{cartaUrl}'>Click here to download the Default Letter.</a></b><br><br>The document must be in a letterhead paper, signed by the company' legal representative with a notarized signature, specifying the reason of the plea and describing the proposals, licenses and quantities to be transfered.<br><br>If you already performed the procedure mentioned above, <b><a href='/hc/requests/new'>click here</a></b> and open a ticket.",
+
+        //minhas solicitacoes
+        "minhas_solicitacoes": "My Requests",
+        "solicitacoes_nas_quais_estou_em_copia": "Requests in which I am copied",
+        "solicitacoes_da_organizacao": "Organization requests",
+        "solicitacoes_da_franquia": "Customer management franchisor",
+        "status": "Status",
+        "organizacao": "Organization",
+        "produto": "Product",
+        "modulo": "Module/Request",
+        "agrupador_de_rotina": "Routine Cluster/Item",
+        "nome_ou_email": "Name or e-mail",
+        "criado": "Created",
+        "ultima_atualizacao": "Last update",
+        "solicitante": "Requester",
+        "assunto": "Subject",
+        "limpar_filtros": "Clear filters",
+        "resultados_para": "results for",
+        "exportar_pagina_atual": "Export current page",
+        "clique_aqui_para_enviar_o_resultado_completo_por_e-mail": "Click here to send the complete result to your email",
+        "sua_solicitacao_esta_sendo_processada_e_sera_enviada_em_breve": "Your request is being processed and will be sent shortly",
+        "abrir_nova_solicitacao": "Open new request",
+        "favor_preencher_o_campo_organizacao": "\"Organizations\" field is required",
+        "preencher_data_obrigatorio": "Filling in a date range is required",
+
+
+        //extras
+
+        "nao_mostrar_novamente": "Do not show again",
+        "sua_solicitacao_foi_processada_com_sucesso_para_sua_seguranca_foi_enviado_um_email": "Your request was processed with success, for you safety, an email was sent to {mail} with your password generated. Request:{ticket_id}",
+        "falha_na_geracao_do_arquivo": "Failure generating file <br/> Please, contact us through 4003-0015 or <a href='/hc/requests/new' target='_blank'>click here</a> to open a request.",
+        "hardlock_copiado_com_sucesso": "Hardlock copied with success!",
+        "selecione_uma_data_de_liberacao": "Select a release date.",
+        "cnpj_invalido": "CNPJ not valid!",
+        "chave_de_emergencia_copiada_com_sucesso": "Emergency key copied with success!",
+        "chave_de_emergencia": "Emergency key",
+        "email_documentos_body": "Olá {userName},\nLembramos que não será possível realizar interações nesta solicitação, ela é apenas um registro do seu autoatendimento.\n\n RPS: {rps}\n Boleto: {boleto}\n Nota Fiscal: {nf}\n\n Agradecemos por utilizar nossos canais de atendimento.\n\n Centro de Serviços TOTVS - CST\n Portal: www.totvs.com/suporte \n Telefone: (11) 4003 0015 opção 4 \n",
+        "erro_na_solicitacao": "Request Error",
+        "enviar_dados_para_aprovacao": "Submit data for approval",
+        "confirma_alteracao_endereco_principal": "Confirm changing main address?",
+        "confirma_alteracao_endereco_cobranca": "Confirm changing billing address?"
+    },
+    "es": {
+        "cancelar": "Cancelar",
+        "ocorreu_um_erro_tente_novamente": "Ocurrió algún error. Por favor, intente nuevamente.",
+        "erro_de_conexao": "Connection error.",
+        "nova_solicitacao_registrada": "Nueva solicitud registrada",
+        "solicitacao_ticket_aberta": "¡Fue abierta la solicitud #{ticket_id}!",
+        "ocorreu_em_sua_solicitacao_ticket_uma_atualizacao": "En su solicitud #{ticket_id} ocurrió una actualización.",
+        "sua_solicitacao_ticket_esta_aguardando_seu_retorno_nao_deixe_de_nos_responder": "La solicitud #{ticket_id} está esperando su respuesta. ¡No deje de respondernos!",
+        "ticket_resolvido": "¡Ticket resuelto!",
+        "sua_solicitacao_ticket_foi_resolvida": "Su solicitud #{ticket_id} fue resuelta.",
+        "solicitacao_fechada": "¡Solicitud finalizada!",
+        "solicitacao_ticket_foi_fechada": "¡La solicitud #{ticket_id} fue finalizada!",
+        "pesquisa_satisfacao": "Encuesta de satisfacción",
+        "pesquisa_satisfacao_ticket_disponivel": "¡La encuesta de satisfacción de la solicitud #{ticket_id} está disponible!",
+        "atualizacao_de_solicitacao": "Actualización de la solicitud",
+        "aguardamos_seu_retorno": "Esperamos su respuesta",
+        "detalhes": "Detalles",
+        "cnpj": "RCPJ",
+        "data_inicial_menor_que_final": "Fechas inválidas! La fecha inicial debe ser más corta que la fecha de finalización.",
+
+        //consulta_impressao
+        "nenhum_resultado_encontrado": "No se encontró ningún resultado.",
+        "por_favor_informe_intervalo_valido": "¡Por favor informe un intervalo válido!",
+        "periodo_superior_6_meses_abrir_solicitacao": "Para un período superior a 6 meses, por favor, vaya a <a target='_blank' href='/hc/requests/new'><u>apertura de solicitud.</u></a>",
+        "digite_numero_do_boleto": "Por favor, digite el número de la boleta.",
+        "digite_numero_rps": "Por favor, digite el número RPS.",
+        "digite_numero_nf": "Por favor, digite el número de la factura.",
+        "selecione_pelo_menos_um_tipo_de_documento": "Seleccione por lo menos un tipo de documento.",
+        "email_enviado": "E-mail enviado a {user_email}\n\nSolicitud: {ticket_id}",
+        "nao_solicitado": "No solicitado.",
+        "titulo_numero": "Título Número",
+        "descricao": "Descripción",
+        "parcela": "Cuota",
+        "empresa_prestadora": "Empresa Prestadora",
+        "cnpj_prestadora": "RCPJ (Registro de Contribuyente Persona Jurídica) Prestadora",
+        "num_nota_fiscal_eletronica": "Nº Factura electrónica",
+        "vencimento": "Vencimiento",
+        "emissao": "Emisión",
+        "nome_comercial_do_cliente": "Nombre comercial del cliente",
+        "prefixo": "Prefijo",
+        "tipo": "Tipo",
+        "valor_nota_fiscal": "Valor de la factura",
+        "valor_boleto": "Valor de la boleta",
+        "valor_baixa": "Valor de la baja",
+        "ir": "IR (Impuesto de renta)",
+        "pis": "PIS (Programa de Integración Social)",
+        "cofins": "COFINS (Contribución para la financiación de la seguridad social)",
+        "csll": "CSLL (Contribución social sobre la ganancia neta)",
+        "inss": "INSS",
+        "iss": "ISS",
+        "observacao": "Observación",
+        "solicitacao_ticket_gerada_com_sucesso": "Solicitud: <b>{ticket_id}</b> generada con éxito.",
+        "dados_invalidos": "¡Datos no válidos!",
+
+        //consulta pendencias
+        "imprimir": "Imprimir",
+        "enviar_por_email": "Enviar por e-mail",
+        "nao_ha_informacoes_disponiveis_para_empresa_selecionada": "¡No existe información disponible para la empresa utilizada!",
+
+        //extrato_cobranca
+        "baixar_arquivo_csv": "Bajar archivo CSV",
+        "mercadorias": "Productos",
+        "servicos": "Servicios",
+        "colaboracao": "Colaboración",
+        "total": "Total",
+        "qtd_nf_mercadorias": "Cant. Fact. Mercaderías",
+        "qtd_nf_servicos": "Cant. Fact. Servicios",
+        "qtd_nf_colaboracao": "Cant. Factura de colaboración",
+        "qtd_nf_total": "Cant. Fact. Total",
+        "visualizar_totalizadores": "Visualizar totalizadores",
+        "producao": "Producción",
+        "homologacao": "Homologação",
+        "teste": "Prueba",
+        "memoria_nao_encontrada": "Memoria no encontrada.",
+
+        //memorias de calculo
+        "sem_sugestoes": "Sin sugerencias",
+
+        //transferencia faturamento
+        "caro_cliente_as_solicitacoes_de_transferencia": "Estimado cliente, las solicitudes de transferencia de licencias, deben tratarse directamente con el Ejecutivo de atención y relación (EAR), por medio de los siguientes canales:",
+        "nome_do_ear": "Nombre del EAR",
+        "telefone": "Teléfono",
+        "transferencia_faturamento_response": "Después del contacto con el EAR será necesario abrir un llamado con la carta de transferencia adjunta.<br><br>Para hacer efectivo el proceso, el documento original debe encaminarse a la dirección de TOTVS S.A. que consta en la carta. <b><a href='{cartaUrl}'>Haga clic aquí para bajar para la carta estándar.</a></b><br><br>El documento debe ser en papel timbrado, firmado por el responsable legal de la empresa y con firma reconocida, especificando el motivo del pleito y describiendo las propuestas, las licencias y las cantidades que deben transferirse.<br><br>Si ya realizó el procedimiento anterior, haga <b><a href='/hc/requests/new'>clic aquí</a></b> y realice la apertura del llamado.",
+
+        //minhas solicitacoes
+        "minhas_solicitacoes": "Mis solicitudes",
+        "solicitacoes_nas_quais_estou_em_copia": "Solicitudes en las cuales estoy en copia",
+        "solicitacoes_da_organizacao": "Solicitudes de la organización",
+        "solicitacoes_da_franquia": "Franquiciador de gestión de clientes",
+        "status": "Estatus",
+        "organizacao": "Organización",
+        "produto": "Producto",
+        "modulo": "Módulo/Solicitude",
+        "agrupador_de_rotina": "Agrupador de rutina/elemento",
+        "nome_ou_email": "Nombre o e-mail",
+        "criado": "Creado",
+        "ultima_atualizacao": "Última actualización",
+        "solicitante": "Solicitante",
+        "assunto": "Asunto",
+        "limpar_filtros": "Limpiar filtros",
+        "resultados_para": "resultados para",
+        "exportar_pagina_atual": "Exportar página actual",
+        "clique_aqui_para_enviar_o_resultado_completo_por_e-mail": "Haga clic aquí para enviar los resultados a su email",
+        "sua_solicitacao_esta_sendo_processada_e_sera_enviada_em_breve": "Su solicitud está siendo procesada y se enviará en breve",
+        "abrir_nova_solicitacao": "Abrir nueva solicitud",
+        "favor_preencher_o_campo_organizacao": "El campo \"Organizaciones\" es obligatorio",
+        "preencher_data_obrigatorio": "Se requiere completar un rango de fechas",
+
+
+        //extras
+        "nao_mostrar_novamente": "No mostrar nuevamente",
+        "sua_solicitacao_foi_processada_com_sucesso_para_sua_seguranca_foi_enviado_um_email": "Su solicitud fue procesada con éxito, para su seguridad se envió un e-mail a {mail} con la contraseña generada. Solicitud: {ticket_id}",
+        "falha_na_geracao_do_arquivo": "Falla en la generación del archivo <br/> Por favor, entre en contacto por medio del teléfono 4003-0015 o <a href='/hc/requests/new' target='_blank'>haga clic aquí</a> para abrir una solicitud.",
+        "hardlock_copiado_com_sucesso": "¡Hardlock copiado con éxito!",
+        "selecione_uma_data_de_liberacao": "Seleccione una fecha de liberación.",
+        "cnpj_invalido": "¡RCPJ no válido!",
+        "chave_de_emergencia_copiada_com_sucesso": "¡Clave de emergencia copiada con éxito!",
+        "chave_de_emergencia": "Clave de emergencia",
+        "email_documentos_body": "Hola {userName},\nLe recordamos que no será posible realizar interacciones en esta solicitud, esta es solamente un registro de su autoatención.\n\n RPS: {rps}\n Boleta: {boleta}\n Factura: {nf}\n\n Agradecemos por utilizar nuestros canales de atención.\n\n Centro de servicios TOTVS - CST\n Portal: www.totvs.com/soporte \n Teléfono: (11) 4003 0015 opción 4 \n",
+        "erro_na_solicitacao": "Error en la solicitud",
+        "enviar_dados_para_aprovacao": "Enviar datos para aprobación",
+        "confirma_alteracao_endereco_principal": "¿Confirma la modificación de la dirección principal?",
+        "confirma_alteracao_endereco_cobranca": "¿Confirma la modificación de la dirección de cobranza?"
+    }
+}
+
+if (document.URL.indexOf('/hc/en-us') > -1) {
+    console.log('setando idioma ingles');
+    CST_CONFIGS.placeholders = _idioma_placeholders['en-us'];
+}
+else if (document.URL.indexOf('/hc/es') > -1)
+    CST_CONFIGS.placeholders = _idioma_placeholders['es'];
+else
+    CST_CONFIGS.placeholders = _idioma_placeholders['pt-br'];
+
+CST_CONFIGS.configs = _configs[CST_CONFIGS.env] || {};
+
+var TOTVSMINHASENHACONTEUDO = "minhasenha.totvs.com.br/restore/";

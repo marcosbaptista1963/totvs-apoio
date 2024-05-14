@@ -1,0 +1,29 @@
+
+@echo off
+REM #***************************************************************************
+REM # File..................: prd-dts11-truncabancos.cmd
+REM # Description...........: Truncate database
+REM # Created by............: Rodrigo Vidal
+REM #***************************************************************************
+
+set DLC=c:\datasul\Progress\dlc102b
+set PATH=%DLC%;%DLC%\bin;%PATH%
+set DIR_BD=C:\_Migracao_Progress\_DUMP\Teste\_Bancos
+
+@echo -------------------------------------------------------
+@echo              TRUNCA TOTVS 11 - PRODUCAO
+@echo -------------------------------------------------------
+
+C:
+cd %DIR_BD%
+
+for %%i in ( eai ems2adt ems2cad ems2esp ems2mov ems2sop ems2sor ems5cad ems5mov emsdev emsfnd finance hcm hcmesp mdmerge mdtfrw mgdbr movdbr payroll ) do (
+   @echo .
+   @echo ----------------------------------
+   @echo ----- Trunca Banco: %%~ni
+   @echo ----------------------------------
+   @echo .
+   call proutil %%~ni -C truncate bi -biblocksize 16384 -bi 32768
+)
+
+pause.

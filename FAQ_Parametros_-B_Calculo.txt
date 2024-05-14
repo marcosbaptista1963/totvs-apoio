@@ -1,0 +1,9 @@
+https://centraldeatendimento.totvs.com/hc/pt-br/articles/360047696534-Framework-Linha-Datasul-TEC-Par%C3%A2metro-server-B-Blocks-in-Database-Buffers
+
+
+Exemplo Calculo:
+8.192 * 10.000 = 81.920.000 bytes de memória utilizados para cache, ou aproximadamente 80 megabytes.
+
+Esse valor pode ser alterado de forma online:
+
+proutil nomedobanco -C increaseto -B novo_valor

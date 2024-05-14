@@ -1,0 +1,89 @@
+
+var primeNovaOferta = (function () {
+    return {
+        setup: function () {
+            if (~window.location.href.indexOf("/requests/")) {
+                //tela de abertura de chamado
+                if ($url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.suporte_tecnico) != -1) {
+
+                    //Desabilita campo nova oferta
+                    $(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta).hide();
+
+                    $("body").on("change", `#cat-totvs-select-${CST_CONFIGS.configs.catalog_v3.routineGroup}`, function (event) {
+                        primeNovaOferta.catalogPrimeRhodiumRule()
+                    });
+                    $("body").on("change", `#cat-totvs-select-${CST_CONFIGS.configs.catalog_v3.module}`, function (event) {
+                        primeNovaOferta.catalogPrimeRhodiumRule()
+                    });
+                }
+            }
+        },
+        catalogPrimeRhodiumRule () {
+            $("#request_custom_fields_" + CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta).prop('checked', false);
+            let tagsCatalogv3 = [];
+            $(".cat-select option:selected").each((i, el) => {
+                tagsCatalogv3.push($(el).val());
+            });
+            const organization = $("#request_organization_id").val() || DADOS_SESSAO.active_organization.id +"";
+            const macrossegments = tagsCatalogv3.find((tag) => { return tag.indexOf('cattotvs_macrossegmento') != -1 });
+            const product = tagsCatalogv3.find((tag) => { return tag.indexOf('cattotvs_nivel_3') != -1 });
+            const produtcModule = tagsCatalogv3.find((tag) => { return tag.indexOf('cattotvs_nivel_4') != -1 });
+            const routineGroup = tagsCatalogv3.find((tag) => { return tag.indexOf('cattotvs_nivel_5') != -1 });
+            let tags = macrossegments + " " + product + " " + produtcModule + " " + routineGroup;
+            let organizationCodeT = "";
+            let hasPrimeNewOffer = "";
+            let hasPortfolioActive = "";
+
+            for (let index = 0; index < DADOS_SESSAO.organizations.length; index++) {
+                const org = DADOS_SESSAO.organizations[index];
+                if (String(org.id) === organization) {
+                    organizationCodeT = org.organization_fields.orgfield_codigo;
+                    hasPrimeNewOffer = org.organization_fields.orgfield_prime_rhodium_demand;
+                    hasPortfolioActive = org.organization_fields.carteira_de_cliente_ativa;
+                    break;
+                }
+            }
+
+            if (hasPrimeNewOffer && hasPrimeNewOffer != "" && hasPortfolioActive && hasPortfolioActive != "") {
+                const param = {
+                    "type": "check-prime-new-offer",
+                    "organizationCodeT": organizationCodeT,
+                    "tags": tags,
+                }
+                var options = {
+                    url: CUSTOMERPORTFOLIOPATH + "/api/zendesk/newoffer/check",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(param),
+
+                };
+                primeNovaOferta.request(options).then((result) => {
+                    if (result.isPrimeNewOffer) {
+                        $(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta).show();
+                    } else {
+                        $(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta).hide();
+                    }
+                }).catch((error) => {
+                    $(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta).hide();
+                })
+            }
+        },
+        request: function (options) {
+            return new Promise(function (resolve, reject) {
+                $.ajax(options)
+                    .done(resolve)
+                    .fail(reject);
+            });
+        },
+    }
+
+})();
+
+function getValue (catalogValue) {
+    const values = catalogValue.split('|');
+    if (values.length > 0) {
+        return values[1]
+    } else {
+        return values;
+    }
+}

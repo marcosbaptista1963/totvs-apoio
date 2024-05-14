@@ -1,0 +1,1001 @@
+var droz_token = "";
+var prechat_base_url = "https://chat-app.meudroz.com/";
+var prechat_customer_key = "totvs-default";
+var prechat_typing_delay = 2500;
+var prechat_button_model = "droz-brothers";
+var droz_brothers_array = [];
+var prechat_inputs = {};
+
+var cod_droz = null;
+if (document.URL.includes("cstsandbox") || document.URL.includes("homolog")) {
+	cod_droz = "37417e3a128e5d36a1841d6cf3e2630816b44c01";
+} else {
+	cod_droz = "d47d5129c379d9f2bcaff7281a5b5606cead95da";
+}
+
+var loading = {
+	options: {
+		theme: "light",
+		message: "Carregando...",
+		stoppable: false,
+		zIndex: 99,
+		shownClass: "waiting-cursor"
+	}
+};
+
+var html = (function () {
+	var token = null;
+	var session = null;
+
+	return {
+		setup: function () {
+			$("body").loading(loading["options"]);
+			var midpath = MIDWAREPATH;
+			var local = html.getqueryparam("local");
+			if (local) {
+				midpath = local;
+			}
+			html.setDinamycContet();
+			middleware.seturl(midpath);
+			zendesk.setup();
+			zendesk.me();
+		},
+
+		setDinamycContet: function () {
+			html.request({ url: `${MIDWAREPATH}/api_files/locales.json` }).then(dataLocales => {
+				CST_CONFIGS.Locales = dataLocales;
+				html.request({ url: `${MIDWAREPATH}/api_files/dynamic_content.json` }).then(dc => {
+					CST_CONFIGS.DinamycContent = dc;
+				});
+			});
+		},
+		settoken: function (v) {
+			token = v;
+			Cookies.set("_csttokenaccess", v, {
+				expires: 7
+			});
+		},
+		setSession: function (v) {
+			session = v;
+			Cookies.set("_cstsessionid", v, {
+				expires: 7
+			});
+		},
+		gettoken: function () {
+			return token;
+		},
+		getSession: function () {
+			return session;
+		},
+		isurlrequestnew: function () {
+			return document.URL.includes("requests/new");
+		},
+		isurlsearch: function () {
+			return document.URL.includes("search?query");
+		},
+		request: function (options) {
+			return new Promise(function (resolve, reject) {
+				$.ajax(options)
+					.done(resolve)
+					.fail(reject);
+			});
+		},
+		getlanguage: function () {
+			var url = window.location.href;
+			var locale = "pt-br";
+			if (url.toLowerCase().includes("/hc/en-us")) {
+				locale = "en-us";
+			} else if (url.toLowerCase().includes("/hc/es")) {
+				locale = "es";
+			}
+			return locale;
+		},
+		loaduserinfo: function () {
+			var params = {
+				code: "userinfo",
+				language: this.getlanguage(),
+				token: html.gettoken()
+			};
+
+			var options = {
+				url: middleware.geturl() + "/template/get",
+				type: "POST",
+				contentType: "application/json",
+				dataType: "html",
+				data: JSON.stringify(params)
+			};
+
+			html.request(options)
+				.then(function (htmltemplate) {
+					$(".user-info-dropdown").html(htmltemplate);
+				})
+				.catch(function (error) {
+					rotascst.navigateTo("home");
+					console.log("template error", error);
+				});
+		},
+		loaddefaultorganization: function () {
+			var params = {
+				code: "userlogged",
+				language: this.getlanguage(),
+				token: html.gettoken()
+			};
+
+			var options = {
+				url: middleware.geturl() + "/template/get",
+				type: "POST",
+				contentType: "application/json",
+				dataType: "html",
+				data: JSON.stringify(params)
+			};
+
+			html.request(options)
+				.then(function (htmltemplate) {
+					$(".user-info-popup").html(htmltemplate);
+					events.userlogged();
+				})
+				.catch(function (error) {
+					rotascst.navigateTo("home");
+					console.log("template error", error);
+				});
+		},
+		getqueryparam: function (key) {
+			var url = window.location.href;
+			var parts = (url || "").split("?"),
+				qparts,
+				qpart,
+				i = 0;
+
+			if (parts.length <= 1) {
+				return null;
+			} else {
+				qparts = parts[1].split("&");
+				for (i in qparts) {
+					qpart = qparts[i].split("=");
+					if (decodeURIComponent(qpart[0]) == key) {
+						return decodeURIComponent(qpart[1] || "");
+					}
+				}
+			}
+			return null;
+		},
+		getDynamicContent: function (text) {
+			for (let dc of CST_CONFIGS.DinamycContent) {
+				if (dc["name"].toLowerCase() == text.toLowerCase()) {
+					let variants = dc["variants"];
+					for (let v of variants) {
+						if (v["locale_id"] == zendesk.getuserzendesk().user.locale_id) {
+							return v["content"];
+						}
+					}
+				}
+			}
+			return text;
+		},
+		loadComponent: function (path, obj) {
+			return new Promise((resolve, reject) => {
+				html.request({ type: "GET", "url": `${MIDWAREPATH}/refact/components/${path}.handlebars` }).then(data => {
+					Handlebars.registerHelper('dc', function (title) {
+						return new Handlebars.SafeString(html.getDynamicContent(title));
+					});
+
+					Handlebars.registerHelper('date', function (date) {
+						return new Handlebars.SafeString(new Date(date).toLocaleDateString(zendesk.getuserzendesk().user.locale, { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' }));
+					});
+
+					Handlebars.registerHelper('calcSizeFile', function (size) {
+						return new Handlebars.SafeString(Math.floor(size / 1000));
+					});
+
+					var template = Handlebars.compile(data);
+					var renderedTemplate = template({ data: obj });
+					resolve(renderedTemplate);
+				})
+			});
+		}
+	};
+})();
+
+var events = (function () {
+	return {
+		userlogged: function () {
+			$(".user-info-popup")
+				.find(".razao-social-selector")
+				.click(function (e) {
+					e.stopPropagation();
+					$(this)
+						.closest(".user-info-popup-container")
+						.toggleClass("razao-social-selector-aberto");
+				});
+			$(".user-info-popup")
+				.find("#user-info-cnpj")
+				.mask(MASCARAS.cnpj);
+			$(".razao-social-list ul li").on("click", function () {
+				Cookies.set("_cstSelectedOrg", $(this).data("organization-id"));
+				$(".menu-superior .user-info-container .user-info-loading").show();
+
+				var params = {
+					incookie: $(this).data("organization-id"),
+					token: html.gettoken(),
+					session: html.getSession()
+				};
+				var options = {
+					url: middleware.geturl() + "/session/changecompany",
+					type: "POST",
+					contentType: "application/json",
+					dataType: "json",
+					data: JSON.stringify(params)
+				};
+				html.request(options)
+					.then(function (result) {
+						if (result["error"]) {
+							showAlert("Problemas no acesso do usuário! Favor fazer o login novamente.");
+						} else {
+							html.settoken(result["token"]);
+							$(".razao-social-list").hide();
+							$(".menu-superior .user-info-container .user-info-loading").show();
+							location.reload();
+						}
+					})
+					.catch(function (error) {
+						showAlert("Problemas no acesso do usuário! " + error.responseText);
+					});
+			});
+		}
+	};
+})();
+
+var middleware = (function () {
+	var url = null;
+	return {
+		seturl: function (v) {
+			url = v;
+		},
+		geturl: function () {
+			return url;
+		},
+		savesession: function () {
+			var params = zendesk.getuserzendesk();
+			params["incookie"] = Cookies.get("_cstSelectedOrg");
+			var options = {
+				url: middleware.geturl() + "/session/save",
+				type: "POST",
+				contentType: "application/json",
+				dataType: "json",
+				data: JSON.stringify(params)
+			};
+			html.request(options)
+				.then(function (result) {
+					if (result["error"]) {
+						showAlert("Problemas no acesso do usuário! Favor fazer o login novamente.");
+					} else {
+						html.settoken(result["token"]);
+						html.setSession(result["sessionId"]);
+						html.loaduserinfo();
+						html.loaddefaultorganization();
+						rotascst.setup();
+					}
+				})
+				.catch(function (error) {
+					showAlert("Problemas no acesso do usuário! " + error.responseText);
+				});
+		}
+	};
+})();
+
+var zendesk = (function () {
+	var hcuser = {
+		user: {
+			avatar_url: "https://assets.zendesk.com/hc/assets/default_avatar.png",
+			email: null,
+			groups: [],
+			identifier: "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+			name: null,
+			organizations: [],
+			role: "anonymous"
+		}
+	};
+	var usercurrent = null;
+	return {
+		setup: function () {
+			if (HelpCenter["user"]) {
+				hcuser = HelpCenter["user"];
+			}
+			// if (HelpCenter.user.role == "anonymous") {
+			// 	(function (d, r, o, z, a, k, t) {
+			// 		a = d.getElementsByTagName("head")[0];
+			// 		k = d.createElement("script");
+			// 		k.async = 1;
+			// 		t = Math.floor(Math.random() * 1000000) + 1;
+			// 		k.src = r + "/" + o + "/droz.js?i=" + z + "&u=" + r + "&v=" + t;
+			// 		a.appendChild(k);
+			// 	})(document, "https://chat-app.meudroz.com", "v1", cod_droz);
+			// }
+		},
+		setuserzendesk: function (v) {
+			usercurrent = v;
+		},
+		getuserzendesk: function () {
+			return usercurrent;
+		},
+		me: function () {
+			if (zendesk.isanonymous() == false) {
+				var options = {
+					url: "/api/v2/users/me.json",
+					type: "GET",
+					contentType: "application/json",
+					dataType: "json"
+				};
+				html.request(options)
+					.then(function (result) {
+						zendesk.setuserzendesk(result);
+						middleware.savesession();
+					})
+					.catch(function (error) {
+						console.log("error", error);
+						showAlert("Problemas no acesso do usuário. Favor atualizar a sua página!");
+					});
+			} else {
+				rotascst.setup();
+			}
+		},
+		userCanSearchFranchises: function () {
+			if (DADOS_SESSAO.user.ticket_restriction != 'organization') {
+				return false;
+			}
+
+			if (!zendesk.getUserMainOrganization().organization_fields.franquias_associadas) {
+				return false;
+			}
+
+			if (zendesk.getUserMainOrganization().organization_fields.orgfield_adm_do_cont_portal != zendesk.getuserzendesk().user.email) {
+				return false;
+			}
+
+			return true;
+		},
+		getUserMainOrganization: function () {
+			return DADOS_SESSAO.organizations.find((e => e.id == DADOS_SESSAO.user.organization_id))
+		},
+		getUserCurrentOrganization: function () {
+			return DADOS_SESSAO.organizations.find((e => e.id == Cookies.get("_cstSelectedOrg")))
+		},
+		isanonymous: function () {
+			if (hcuser["role"] == "anonymous") {
+				return true;
+			}
+			return false;
+		}
+	};
+})();
+
+var chatbot = (function () {
+	return {
+		setup: function () {
+			var self = this;
+			var currentUrl = window.location.href.toString();
+			if (HelpCenter && HelpCenter.user && HelpCenter.user.email != null && !currentUrl.includes('atendimento.totvs.com')) {
+				var params = {
+					token: html.gettoken()
+				};
+				var options = {
+					url: middleware.geturl() + "/preChatInfo",
+					type: "POST",
+					contentType: "application/json",
+					dataType: "json",
+					data: JSON.stringify(params)
+				};
+				html.request(options).then(function (result) {
+					prechat_inputs.userName = result.userName;
+					prechat_inputs.userEmail = result.userEmail;
+					prechat_inputs.idiomaPortal = result.idiomaPortal;
+					prechat_inputs.strPais = result.strPais;
+					self.installDroz();
+				});
+			}
+		},
+		installDroz: function () {
+			this.showChatButtons();
+		},
+		showChatButtons: function () {
+			setTimeout(function () {
+				$("#chat-show").addClass("visible");
+				$("#drz_btn_header").css("display", "block");
+
+				// (function (d, r, o, z, a, k, t) {
+				// 	a = d.getElementsByTagName("head")[0];
+				// 	k = d.createElement("script");
+				// 	k.async = 1;
+				// 	t = Math.floor(Math.random() * 1000000) + 1;
+				// 	k.src = r + "/" + o + "/droz.js?i=" + z + "&u=" + r + "&v=" + t;
+				// 	a.appendChild(k);
+				// })(document, "https://chat-app.meudroz.com", "v1", cod_droz);
+				// $("#droz-brothers").removeClass("visible");
+			}, 500);
+			this.openChatbot();
+		},
+		openChatbot: function () {
+			if ($(".drz_btn_open").length === 1) {
+				if (document.URL.includes("/#home")) {
+					if (!localStorage.getItem("_closedChatbot")) {
+						$("#drz_btn_open").trigger("click");
+						localStorage.setItem("_closedChatbot", true);
+					}
+				}
+			} else {
+				setTimeout(() => this.openChatbot(), 500);
+			}
+		}
+	};
+})();
+
+var rotascst = (function () {
+	var root = null;
+	var useHash = true; // Defaults to: false
+	var hash = "#"; // Defaults to: '#'
+	var router = new Navigo(root, useHash, hash);
+
+	return {
+		setup: function () {
+			router
+				.on({
+					home: function () {
+						rotascst.refactnavigate("home");
+					},
+					autoatendimento: function () {
+						rotascst.refactnavigate("autoatendimento");
+					},
+					liberacaoacesso: function () {
+						rotascst.refactnavigate("liberacaoacesso");
+					},
+					liberacaoacessoemergencial: function () {
+						rotascst.refactnavigate("acesso_emergencial");
+					},
+					informacoescadastro: function () {
+						rotascst.navigateTo("informacoes_cadastro");
+					},
+					suportetecnico: function () {
+						rotascst.navigateTo("suporte_tecnico");
+					},
+					comopodemosajudar: function () {
+						rotascst.navigateTo("como_podemos_ajudar");
+					},
+					aberturachamado: function () {
+						rotascst.navigateTo("abertura_chamado");
+					},
+					visao_cliente: function () {
+						rotascst.navigateTo("visao_cliente");
+					},
+					contatos: function () {
+						rotascst.navigateTo("contatos");
+					},
+					gerenciador_solicitacoes: function () {
+						rotascst.navigateTo("gerenciador_solicitacoes");
+					},
+
+					//contrato
+					transferenciafaturamento: function () {
+						rotascst.navigateTo("transferencia_faturamento");
+					},
+					consultacontrato: function () {
+						rotascst.navigateTo("consulta_contrato");
+					},
+					consultacontratocorporativo: function () {
+						rotascst.navigateTo("consulta_contrato_corporativo");
+					},
+					memoriacalculocomprovacao: function () {
+						rotascst.navigateTo("memoria_calculo_comprovacao");
+					},
+					memoriacalculoinforme: function () {
+						rotascst.navigateTo("memoria_calculo_informe");
+					},
+					informemetrica: function () {
+						rotascst.navigateTo("informe_metrica");
+					},
+					comprovacaometrica: function () {
+						rotascst.navigateTo("comprovacao_metrica");
+					},
+
+					//financeiro
+					fichafaturamento: function () {
+						rotascst.navigateTo("ficha_faturamento");
+					},
+					atualizacaoboleto: function () {
+						rotascst.navigateTo("atualizacao_boleto_vencido");
+					},
+					consultaimpressao: function () {
+						rotascst.navigateTo("consulta_impressao");
+					},
+					consultapendencias: function () {
+						rotascst.navigateTo("consulta_pendencias");
+					},
+
+					//visualizacao de documento
+					visualizadocumento: function () {
+						rotascst.navigateTo("visualiza_documento");
+					},
+
+					//minhas solicitações
+					solicitacoes: function () {
+						rotascst.navigateTo("myrequests");
+					},
+					myrequests: function () {
+						rotascst.navigateTo("myrequests");
+					},
+					"solicitacoes/emcopia": function () {
+						rotascst.navigateTo("myrequests");
+					},
+					"solicitacoes/organizacoes": function () {
+						rotascst.navigateTo("myrequests");
+					},
+					"solicitacoes/franquias": function () {
+						rotascst.navigateTo("myrequests");
+					},
+					meuperfil: function () {
+						rotascst.navigateTo("meu_perfil");
+					},
+
+					//resultados da pesquisa
+					search: function () {
+						rotascst.navigateTo("busca");
+					},
+
+					//metricas intera
+					metricasintera: function () {
+						rotascst.navigateTo("metricas_intera");
+					},
+					simuladorvendasintera: function () {
+						rotascst.navigateTo("simulador_vendas_intera");
+					},
+					//new dashBoard
+					newdashboard: function () {
+						rotascst.refactnavigate("newdashboard");
+					},
+					//VTEX
+					vtex: function () {
+						rotascst.refactnavigate("vtex_create_ticket");
+					},
+					vtexdetailsticket: function () {
+						rotascst.refactnavigate("vtex_details_ticket");
+					},
+					//Central Colaborativa release PO
+					newscollaborativecenter: function () {
+						rotascst.refactnavigate("news_collaborative_center");
+					},
+					//Confirmação de email Auto cadastro
+					emailconfirmation: function () {
+						rotascst.refactnavigate("email_confirmation");
+					},
+					centralcolaborativa: function () {
+						rotascst.refactnavigate("centralcolaborativa");
+					},
+					viewlgpd: function () {
+						rotascst.navigateTo("viewlgpd");
+					}, workflowouvidoria: function () {
+						rotascst.refactnavigate("workflowouvidoria");
+					}
+				})
+				.resolve();
+		},
+		refactnavigate: function (code) {
+			if (code == 'home') {
+				checkDadosSessao();
+			} else {
+				$("body").loading(loading["options"]);
+			}
+			rotascst
+				.refacttemplate(code)
+				.then(function (htmltemplate) {
+					$("body").hide();
+					$("body").scrollTop(0);
+					if (!RedirectUserToLogin()) {
+						$("#cst-conteudo").html(htmltemplate);
+						$("body").show();
+					}
+					$("body").loading("stop");
+				})
+				.catch(function (error) {
+					var msg = {
+						error: error["responseText"]
+					};
+					try {
+						msg = JSON.parse(error["responseText"]);
+					} catch (e) { }
+
+					if (msg["needauth"]) {
+						rotascst.redirect();
+					} else {
+						if (msg["redirect"]) {
+							var _message = msg["error"];
+							var _url = msg["redirect"];
+							_url = _url.replace('{locale}', html.getlanguage());
+							showAlert({ message: _message, redirect: _url });
+						} else {
+							showAlert(msg["error"]);
+						}
+					}
+					$("body").loading("stop");
+				});
+		},
+		refacttemplate: function (code) {
+			return new Promise(function (resolve, reject) {
+				var params = {
+					code: code,
+					language: html.getlanguage(),
+					token: html.gettoken()
+				};
+
+				console.log(middleware.geturl());
+				console.log(params);
+
+				var options = {
+					url: middleware.geturl() + "/template/get",
+					type: "POST",
+					contentType: "application/json",
+					dataType: "html",
+					data: JSON.stringify(params)
+				};
+
+				html.request(options)
+					.then(function (result) {
+						resolve(result);
+					})
+					.catch(function (error) {
+						reject(error);
+					});
+			});
+		},
+		redirect: function () {
+			var current = window.location.href;
+			var url =
+				CST_CONFIGS.env == "prod"
+					? CST_CONFIGS.prod_url
+					: CST_CONFIGS.homolog_url.find(url => url == document.location.origin);
+			url += "/hc/restricted?return_to=" + current;
+			localStorage.setItem("restricted_redirect", current.replace("https://", ""));
+			window.location.href = url;
+		},
+		navigateTo: function (code) {
+			rotascst
+				.carregatemplate(code)
+				.then(function (htmltemplate) {
+					$("body").hide();
+					$("body").scrollTop(0);
+					if (!RedirectUserToLogin()) {
+						$("#cst-conteudo").html(htmltemplate);
+						$("body").show();
+					}
+				})
+				.catch(function (error) {
+					var msg = {
+						error: error["responseText"]
+					};
+					try {
+						msg = JSON.parse(error["responseText"]);
+					} catch (e) { }
+
+					if (msg["needauth"]) {
+						rotascst.redirect();
+					} else {
+						if (msg["redirect"]) {
+							var _message = msg["error"];
+							var _url = msg["redirect"];
+							_url = _url.replace('{locale}', html.getlanguage());
+							showAlert({ message: _message, redirect: _url });
+						} else {
+							showAlert(msg["error"]);
+						}
+					}
+				});
+		},
+		carregatemplate: function (code) {
+			return new Promise(function (resolve, reject) {
+				if (!code) {
+					code = "autoatendimento";
+				}
+
+				var data = {
+					template: code,
+					lang: html.getlanguage(),
+					token: html.gettoken()
+				};
+				var options = {
+					url: middleware.geturl() + "/TEMPLATES",
+					type: "POST",
+					contentType: "application/json",
+					data: JSON.stringify(data),
+					dataType: "html"
+				};
+				html.request(options)
+					.then(function (result) {
+						resolve(result);
+					})
+					.catch(function (error) {
+						reject(error);
+					});
+			});
+		}
+	};
+})();
+
+function currentActiveOrganizationHasTag (tag) {
+	let hasTag = DADOS_SESSAO && DADOS_SESSAO.active_organization
+		&& DADOS_SESSAO.active_organization.tags
+		&& DADOS_SESSAO.active_organization.tags.includes(tag);
+
+	return hasTag != null ? hasTag : false;
+}
+
+
+
+function getUrlParameterByName (name) {
+	name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+	var regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
+	var results = regex.exec(location.search);
+	return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+$(document).ready(function () {
+	html.setup();
+
+	//Validação do form para redirecionar para brand correta
+	var ticket_form_id = getUrlParameterByName("ticket_form_id");
+
+	if (document.URL.includes("totvscst")) {
+		if (ticket_form_id === CST_CONFIGS.configs.forms.suporte_tecnico) {
+			let totvscst_link = CST_CONFIGS.configs.formsCustomLink[CST_CONFIGS.configs.forms.suporte_tecnico];
+			window.location.href = totvscst_link + "/hc/pt-br/requests/new?ticket_form_id=" + ticket_form_id;
+		}
+	}
+
+	if (document.URL.includes("centraldeatendimento")) {
+		var form_ids = [
+			CST_CONFIGS.configs.forms.cloud,
+			CST_CONFIGS.configs.forms.ouvidoria,
+			CST_CONFIGS.configs.forms.sac_fly01,
+			CST_CONFIGS.configs.forms.centro_servicos
+		];
+		if (form_ids.includes(ticket_form_id)) {
+			window.location.href =
+				CST_CONFIGS.configs.formsCustomLink.default + "/hc/pt-br/requests/new?ticket_form_id=" + ticket_form_id;
+		}
+	}
+});
+
+/**
+ * OnClick do botão "Marcar como resolvido" do portal de clientes externos (CST e TOTVS).
+ * O botão só aparece quando o ticket é com status "Validação Cliente" (que na verdade é status resolvido).
+ * Este botão está localizado em no handlebars request-page.hbs do zendesk com id #mark-as-solved-client.
+ */
+$(document).ready(function () {
+	$("#mark_as_solved").css("display", "none");
+	initRequestControll();
+});
+
+function initRequestControll () {
+	setRealStatusOfTicket();
+
+	$("#request_comment_body").off("keyup");
+	$("#request_comment_body").on("keyup", () => {
+		if (
+			$("#request_comment_body")
+				.val()
+				.trim().length > 0
+		) {
+			$("#mark-as-solved-client").off("click");
+			$("#mark-as-solved-client").css({ cursor: "not-allowed" });
+			$("input[name=commit]").prop("disabled", false);
+		} else {
+			$("#mark-as-solved-client").on("click", customerResolvedTicketZendesk);
+			$("#mark-as-solved-client").css({ cursor: "pointer" });
+			$("input[name=commit]").prop("disabled", true);
+		}
+	});
+
+	$("#mark-as-solved-client").on("click", customerResolvedTicketZendesk);
+}
+
+function getTicketId () {
+	var id = document.location.pathname.split("/").find(item => {
+		return !isNaN(parseFloat(item));
+	});
+	return id;
+}
+
+function setRealStatusOfTicket () {
+	const id = getTicketId();
+	if (!id) return;
+
+	let request = `${CENTRALBASE}/tickets/${id}`;
+	var options = {
+		url: request,
+		type: "GET",
+		contentType: "application/json"
+	};
+
+	html.request(options).then(function (result) {
+		const statusLabels = {
+			new: {
+				"pt-br": { nome: "Aberto", legenda: "Estamos trabalhando para respondê-lo" },
+				"en-us": { nome: "Open", legenda: "We are working to answer you." },
+				"es": { nome: "Abierto", legenda: "Estamos trabajando para responderle" },
+			},
+			open: {
+				"pt-br": { nome: "Aberto", legenda: "Estamos trabalhando para respondê-lo" },
+				"en-us": { nome: "Open", legenda: "We are working to answer you." },
+				"es": { nome: "Abierto", legenda: "Estamos trabajando para responderle" }
+			},
+			pending: {
+				"pt-br": { nome: "Aguardando resposta", legenda: "Estamos aguardando sua resposta" },
+				"en-us": { nome: "Waiting for an answer", legenda: "We are waiting for your answer" },
+				"es": { nome: "Esperando respuesta", legenda: "Estamos esperando su respuesta" }
+			},
+			hold: {
+				"pt-br": { nome: "Aberto", legenda: "Estamos trabalhando para respondê-lo" },
+				"en-us": { nome: "Open", legenda: "We are working to answer you." },
+				"es": { nome: "Abierto", legenda: "Estamos trabajando para responderle" }
+			},
+			solved: {
+				"pt-br": { nome: "Validação Cliente", legenda: "Esta solicitação esta em validação cliente" },
+				"en-us": { nome: "Resolved", legenda: "This request has been resolved" },
+				"es": { nome: "Resuelto", legenda: "Esta solicitud se ha resuelto" }
+			},
+			closed: {
+				"pt-br": { nome: "Fechado", legenda: "Esta solicitação foi fechada" },
+				"en-us": { nome: "Closed", legenda: "This request has been closed" },
+				"es": { nome: "Cerrado", legenda: "Esta solicitud se ha cerrado" }
+			},
+		}
+
+		if (result && result.tickets && result.count > 0) {
+			$(".request-solved").text(statusLabels[result.tickets[0].status][getCurrentIdioma()].nome);
+			$(".request-solved").attr("title", statusLabels[result.tickets[0].status][getCurrentIdioma()].legenda);
+		}
+		isTicketAgreementSolved();
+	});
+}
+
+function isTicketAgreementSolved () {
+	const id = getTicketId();
+	if (!id) return;
+
+	let request = `${MIDWAREPATH}/central-base/isTicketAgreementSolved/${id}`;
+	var options = {
+		url: request,
+		type: "GET",
+		contentType: "application/json"
+	};
+
+	html.request(options).then((result) => {
+		if (result && result.agreement) {
+			//Desabilita os campos da página
+			markSovedAndDisableFields();
+			showAlert("Sua solicitação está resolvida, impossível realizar comentários.");
+		}
+	});
+}
+
+/**
+ * @author Menescal
+ * @description Atualiza o ticket para solved na zendesk, e também adiciona 
+ * as tags "ticket_validado_cliente_fechado" e "ticket_queue_to_solve".  Na 
+ * sequencia executa a function "customerResolvedTicketCentralBase" para atualizar na base centralizada.
+ */
+function customerResolvedTicketZendesk () {
+	var params = {
+		ticket: $(this).data("ticket")
+	};
+
+	let request = `${MIDWAREPATH}/central-base/markClosedZendeskUpdate`;
+	let options = {
+		url: request,
+		type: "POST",
+		contentType: "application/json",
+		dataType: "json",
+		data: JSON.stringify(params)
+	};
+
+	hcLoading();
+
+	html.request(options).then((res) => {
+		console.log('Ticket encerrado pelo cliente na Zendesk', res);
+		// Atualiza na base centralizada
+		if (res.status != undefined) {
+			customerResolvedTicketCentralBase(params);
+		}
+		hcLoading("stop");
+	}).catch((error) => {
+		console.log("ERRO em customerResolvedTicketZendesk:", error);
+		showAlert("Problemas ao resolver o ticket, tente novamente!");
+		hcLoading("stop");
+	});
+}
+
+/**
+ * @author Menescal
+ * @description Atualiza os dados do ticket resolvido pelo cliente na base centralizada 
+ * SOMENTE se for atualzado na zendesk com sucesso em "customerResolvedTicketZendesk".
+ * @param params json do ticket da zendesk { ticket: <numero-ticket> }
+ */
+function customerResolvedTicketCentralBase (params) {
+
+	let request = `${MIDWAREPATH}/central-base/markClosed`;
+	let options = {
+		url: request,
+		type: "POST",
+		contentType: "application/json",
+		dataType: "json",
+		data: JSON.stringify(params)
+	};
+
+	html.request(options).then(() => {
+		hcErrorAlert("Sua solicitação foi Marcada com status Resolvida! Aguarde...");
+		// Seta o status como resolvido
+		markSovedAndDisableFields();
+
+	}).catch((error) => {
+		console.log("ERRO em customerResolvedTicketCentralBase:", error);
+		showAlert("Problemas ao resolver o ticket, tente novamente!");
+	});
+}
+
+/**
+ * @author Menescal
+ * @description Atualiza o layout dos detalhes do ticket para não permitir alteração. 
+ */
+function markSovedAndDisableFields () {
+	$(".comment-container .comment-ccs").prop("disabled", true);
+	$(".comment-container #request_comment_body").val("");
+	$(".comment-container #request_comment_body").prop("disabled", true);
+
+	$(".comment-form-controls input[name=commit]").prop("disabled", true);
+	$(".comment-form-controls #mark-as-solved-client").hide();
+	$(".comment-form-controls #mark-as-solved-client").off("click");
+
+	let statusLabels = {
+		solved: {
+			"pt-br": { nome: "Resolvido", legenda: "Esta solicitação foi resolvida pelo cliente" },
+			"en-us": { nome: "Resolved", legenda: "This request was resolved by the customer" },
+			"es": { nome: "Resuelto", legenda: "Esta solicitud fue resuelta por el cliente" }
+		}
+	}
+	$(".request-solved").text(statusLabels['solved'][getCurrentIdioma()].nome);
+	$(".request-solved").attr("title", statusLabels['solved'][getCurrentIdioma()].legenda);
+}
+
+function canUserSelectPhoneSupport () {
+	return DADOS_SESSAO.user.tags.indexOf('userfield_permite_consultoria_sim') != -1;
+}
+
+/**
+ * @description Mostra uma mensagem de acordo com o tipo de permissão contratual para suporte telefônico
+ * @param {*} showMessage booleano para mostrar ou não mensagens de excessão
+ */
+function isValidoSuporteTelefonico (showMessage) {
+	//Validação de suporte telefônico
+	let message = null;
+	const canSelectPhoneSupport = canUserSelectPhoneSupport();
+	const tipoSolicitacao = $(`#request_custom_fields_${CST_CONFIGS.configs.catalog_v1.combo_tipo_solicitacao}`).val();
+	const aceitaFaturamento = $(`#request_custom_fields_${CST_CONFIGS.configs.catalog_v1.combo_aceite_consultoria}`).val();
+
+	if (tipoSolicitacao && aceitaFaturamento && !canSelectPhoneSupport &&
+		tipoSolicitacao.indexOf('jira_tipo_de_solicitacao:_consultoria_telefonica') != -1 &&
+		aceitaFaturamento.indexOf('jira_aceite_consultoria__sim') != -1) {
+		message = `Seu contato não está cadastrado no Portal do Cliente como um perfil autorizado a solicitar consultoria telefônica.
+		Por gentileza, acione o administrador do Portal de sua empresa para configurar o seu acesso ou buscar um perfil autorizado para registro desse atendimento. Em caso de dúvidas sobre a identificação do contato administrador do Portal, ligue (11) 4003-0015, opção 7 e, em seguida, opção 4 para buscar o suporte com o time de Assessoria ao Portal do Cliente.`;
+	}
+
+	if (tipoSolicitacao && !canSelectPhoneSupport &&
+		tipoSolicitacao.indexOf('jira_tipo_de_solicitacao:_consultoria_telefonica') != -1) {
+		message = 'O seu usuário não tem permissão para registros de atendimentos de consultoria. Por gentileza, entre em contato com o Administrador do Portal de sua empresa empresa para solicitar a alteração de seu perfil.';
+	}
+
+	if (message) {
+		if (showMessage) {
+			hcErrorAlert(message);
+		}
+		return false;
+	}
+
+	return true;
+}

@@ -1,0 +1,18 @@
+Parar firewal linux CENTOS8
+
+sudo systemctl stop firewalld
+
+Stop = para
+Start = inicia
+Status = verifica se esta em execução
+
+[root@CENTOS8 properties]# sudo systemctl status firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; enabled; vendor preset: enabled)
+   Active: active (running) since Wed 2023-03-29 11:06:00 -03; 28min ago
+     Docs: man:firewalld(1)
+ Main PID: 773538 (firewalld)
+    Tasks: 2 (limit: 23540)
+   Memory: 27.0M
+   CGroup: /system.slice/firewalld.service
+           └─773538 /usr/libexec/platform-python -s /usr/sbin/firewalld --nofork --nopid

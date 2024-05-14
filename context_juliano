@@ -1,0 +1,5 @@
+<Environment name="totvs.license.ambient.type" value="demonstration" type="java.lang.String" />
+<Environment name="totvs.license.server" type="java.lang.String" value="192.168.0.6" />
+<Environment name="totvs.license.port" type="java.lang.String" value="5555" />
+<Environment name="totvs.appserver" type="java.lang.String" value="http://DESKTOP-J3OP3LA:9001/apsv"/>
+</Context>

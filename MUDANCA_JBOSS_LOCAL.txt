@@ -1,0 +1,21 @@
+Considerando a cópia manual da instância de instance-8480 para instance-8580, altere os arquivos abaixo:
+
+
+
+--> conf\josso-agent-config.xml - Altere a porta de acesso nas 3 entradas deste arquivo;
+
+
+
+--> conf\jboss-service.xml - Alterar a propriedade "ServerName" na linha 193 do arquivo para o conjunto de portas utilizado de acordo com a porta da instância. (Ex: Se usar a instância 8280, altere para "ports-8280);
+
+
+
+--> conf\datasul\datasul_framework.properties - Aterar os caminhos dos diretórios e pastas de acesso. Alterar também as portas 1199 para 1299;
+
+
+
+--> conf\datasul\di.properties - Alterar caminho do arquivo config.xml;
+
+
+
+--> deploy\progress-ds.xml - Alterar a porta de conexão dos bancos.

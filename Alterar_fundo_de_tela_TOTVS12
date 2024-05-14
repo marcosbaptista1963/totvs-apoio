@@ -1,0 +1,12 @@
+Dúvida
+Como alterar a cor de fundo do menu do Datasul for THF?
+Ambiente
+Framework - Framework (Linha Datasul) - Menu (MNU) – Todas as versões
+Solução
+Para alterar a cor de fundo do menu do Novo Framework Datasul, efetue o seguinte procedimento:
+1. Acesse Configurações, Propriedades do Sistema;
+2. Clique sobre o card Propriedades Menu;
+3. No campo Cor de Fundo do menu, selecione a cor desejada;
+4. Realizar novo login para que a nova cor do menu seja apresentada.
+Importante
+A nova cor do menu será aplicada para todos os usuários

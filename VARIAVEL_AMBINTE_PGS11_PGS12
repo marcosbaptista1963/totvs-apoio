@@ -1,0 +1,19 @@
+PROGRESS 11
+
+/etc/profile
+
+DLC=/usr/progress/dlc117; export DLC
+JAVA_HOME=/usr/java/jre1.7.0_80; export JAVA_HOME
+PATH=$DLC:$DLC/bin:$JAVA_HOME/bin:$PATH; export PATH
+PROMSGS=$DLC/promsgs; export PROMSGS
+
+PROGRESS 12
+
+/etc/profile
+
+DLC=/usr/progress/dlc12; export DLC
+JAVA_HOME=/usr/java/jdk-11.0.16; export JAVA_HOME
+PATH=$DLC:$DLC/bin:$JAVA_HOME/bin:$PATH; export PATH
+PROMSGS=$DLC/promsgs; export PROMSGS
+
+

@@ -1,0 +1,34 @@
+"upd-dir-gui32" "pasta" "" "" "" 270
+"upd-dir-chr32" "pasta-?" "" "" "" 511
+"upd-dir-jboss" "pasta-?" "" "" "" 273
+"upd-jboss-srv" "pasta-?" "" "" "" 275
+"upd-dir-bkp" "pasta-?" "" "" "" 274
+"upd-dir-zip" "reparq" "" "" "" 276
+
+
+
+
+
+
+"upd-dir-gui32" "pasta-?" "" "" "" 270
+
+-------------- 15/02/2024 -------------------
+OBS.: Nos pacotes anteriores o mesmo vinha desta forma = 
+
+"upd-dir-gui32" "pasta" "" "" "" 270
+"upd-dir-gui32" "pasta-?" "" "" "" 270 tinha que ajustar
+---------------15/02/2024 --------------------
+
+
+NO DIRETORIO DA CONSOLE PACOTE
+M:\console117\acerto-12.1.2301.5-12.1.2301.6
+
+Diretorio = dat
+arquivo = parametros.dat
+
+Alterar a primeira linha 
+
+"upd-dir-gui32" "pasta-?" "" "" "" 270
+
+Na console deixar o Diretorio de programas tty e programas Windows x86 em branco
+Nesta etapa so ira atualizar o tomcat e ira pular os programas

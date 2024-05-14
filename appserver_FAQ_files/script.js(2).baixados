@@ -1,0 +1,1594 @@
+/**
+ * Guide TOTVS script.js
+ */
+var requestIdPcSistemas = null;
+var agrupadorToSearh = ["Cloud Computing", "Tecnologia da Informação", "GCAD", "TI"];
+var productToSearch = ["Core Banking"];
+var LOCALE = "pt-br";
+var DC = {};
+
+$(document).ready(function () {    
+    // TIPDOP-1535 - Esconder opção para criar ticket no dropdown de ações da central colaborativa.
+    const create_ticket_option = document.querySelector("div.post-actions.actions span.dropdown span.dropdown-menu a[data-action='escalate']")
+    const create_ticket_option_comment = document.querySelector("footer.comment-footer span.comment-actions span.dropdown span.dropdown-menu a[data-action='escalate']")
+
+    if (create_ticket_option) {
+        create_ticket_option.setAttribute('hidden', true)
+    }
+
+    if (create_ticket_option_comment) {
+        create_ticket_option_comment.setAttribute('hidden', true)
+    }
+
+    DC = $("#params-dynamics").data("dc");
+    if (HelpCenter.user.locale) {
+        LOCALE = HelpCenter.user.locale;
+    }
+    //SEGUIR AUTOMATICAMENTE UMA PUBLICAÇÃO CRIADA
+    if (document.referrer.includes("/community/posts/new?community_post")) {
+        $('.post-subscribe').hide();
+        $.post($('.post-subscribe').attr('href'), function (data) {
+            $('.post-follow').html('<a class="post-unsubscribe btn btn-info" rel="nofollow" data-follower-count="1" aria-selected="true" 	data-method="delete" href="' + window.location.href + '/subscription.html">Deixar de seguir</a>');
+            $('.post-subscribe').show();
+        });
+    }
+    /*  
+    var emailsST = "";
+    if((emailsST.indexOf(HelpCenter.user.email) == -1) && (location.href.indexOf('ticket_form_id=368847') > -1)){
+    $('#hcform').css('height', '302px').css('padding-top', '20px').html('<div class="alert alert-info" role="alert"><strong>' + HelpCenter.user.name + '</strong>! Estamos em manutenção do formulário de Suporte Técnico. Em breve, uma nova experiência na abertura de solicitações.  Pedimos desculpas pelo transtorno e, caso prefira, utilize os demais canais de atendimento disponíveis conforme Guia de Atendimento Totvs."</div>');
+    }  
+    if (window.location.href.indexOf("new?ticket_form_id=368847") > -1) {
+    $("#msg-new-catalog").show();
+    }
+    */
+});
+
+$(document).ajaxComplete(function () {
+
+    $('ul#select2-vOne46074507-results li').each(function () {
+        if (agrupadorToSearh.indexOf($(this).text().trim()) > -1) {
+            $(this).remove();
+        }
+    });
+
+    /*ini*/
+    $('ul#select2-vOne46074547-results li').each(function () {
+        if (productToSearch.indexOf($(this).text().trim()) > -1) {
+            $(this).remove();
+        }
+    });
+    /*end*/
+
+    setTimeout(function () {
+        $('.favorite-catalogo#catalogo div').each(function () {
+            if (agrupadorToSearh.indexOf($(this).text().trim()) > -1) {
+                $(this).remove();
+            }
+        });
+    }, 50);
+});
+
+var URL13 = "https://ti-services.totvs.com.br/api/v1/centralbase";
+var URL17 = "https://ti-services.totvs.com.br/api/v1/centralcolaborativa";
+var URLJIRA = "https://jiraproducao.totvs.com.br/browse/";
+
+function clickButtonProduct () {
+
+    $(".menu-products button").each(function (index) {
+        $(this).removeClass("btn-primary");
+    });
+
+    $(this).addClass("btn-primary");
+    var that = this;
+    var url = URL13 + "/topics/ByProduct/" + this.id.replace('product-', '');
+    var options = {
+        headers: { 'Content-Type': 'application/json' },
+        dataType: "json",
+        type: "GET"
+    };
+    var resolve = function (res) {
+        if (res.topics) {
+            var itens = '<ul class="list-group" id="accordion">';
+            for (var i = 0; i < res.topics.length; i++) {
+                var item = res.topics[i];
+                var description = item.name.replace(that.dataset.description + " > ", "");
+                if (description.indexOf(">") === -1) {
+                    itens += ' <li class="list-group-item" style="margin: 5px;" ><a href="' + item.html_url + '">' + item.name.replace(that.dataset.description + " > ", "") + '</a></li>';
+                } else {
+                    var subnivel = description.split(">");
+                    var nomeSub = subnivel[0];
+                    while (1 == 1) {
+                        var nivel = subnivel[0].trim();
+                        if (nivel.indexOf(" ") > -1) {
+                            subnivel[0] = nivel.replace(" ", "");
+                            subnivel[0] = subnivel[0].replace(".", "");
+                            subnivel[0] = subnivel[0].replace("(", "");
+                            subnivel[0] = subnivel[0].replace(")", "");
+                        } else {
+                            break;
+                        }
+                    }
+                    var sub = subnivel[0].trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                    if (itens.indexOf('ul class="list-group-' + subnivel[0].trim() + ' ') === -1 && itens.indexOf('ul class="list-group-' + sub + ' ') === -1) {
+                        itens += ' <li class="list-group-item list-group-item-' + sub + ' " style="margin: 5px" ><a href="#' + sub + '" class="eventPrevent" data-toggle="collapse" data-parent="#accordion">' + nomeSub.trim() + '</a>';
+                        itens += '<ul class="list-group-' + sub + ' collapse" id="' + sub + '"></ul>';
+                        itens += '</li>';
+                    }
+                }
+            }
+            itens += '</ul>';
+
+            $(".itens-products").css("display", "block");
+            $(".itens-posts").css("display", "none");
+            $('.itens-products').html(itens);
+
+            for (var i = 0; i < res.topics.length; i++) {
+                var item = res.topics[i];
+                var description = item.name.replace(that.dataset.description + " > ", "");
+                if (description.indexOf(">") > -1) {
+                    var subnivel = description.split(">");
+                    while (1 == 1) {
+                        var nivel = subnivel[0].trim();
+                        if (nivel.indexOf(" ") > -1) {
+                            subnivel[0] = nivel.replace(" ", "");
+                            subnivel[0] = subnivel[0].replace(".", "");
+                            subnivel[0] = subnivel[0].replace("(", "");
+                            subnivel[0] = subnivel[0].replace(")", "");
+                        } else {
+                            break;
+                        }
+                    }
+
+                    var sub0 = subnivel[0].trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+
+                    if (subnivel.length <= 2) {
+                        $(".list-group-" + sub0).append('<li class="list-group-item list-group-child" style="margin: 5px;" ><a href="' + item.html_url.replace('pt-br', LOCALE) + '">' + subnivel[1].trim() + '</a></li>');
+                    } else {
+                        var nomeSubnivel1 = subnivel[1].trim();
+                        var sub1 = subnivel[1].trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                        subnivel[1] = sub1;
+                        while (1 == 1) {
+                            var nivel1 = subnivel[1].trim();
+                            if (nivel1.indexOf(" ") > -1) {
+                                subnivel[1] = nivel1.replace(" ", "");
+                                subnivel[1] = subnivel[1].replace(".", "");
+                                subnivel[1] = subnivel[1].replace("(", "");
+                                subnivel[1] = subnivel[1].replace(")", "");
+                            } else {
+                                break;
+                            }
+                        }
+                        sub1 = subnivel[1].trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                        var sub0 = subnivel[0].trim().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                        var itens = ' <li class="list-group-item list-group-item-' + sub1 + ' " style="margin: 5px" >';
+
+                        itens += '    <a href="#' + sub0 + '-' + sub1 + '-sub" class="eventPrevent" data-toggle="collapse" data-parent="#accordion">' + nomeSubnivel1 + '</a>';
+
+                        itens += '<ul class="list-group-' + sub0 + '-' + sub1 + '-sub collapse" id="' + sub0 + '-' + sub1 + '-sub">';
+                        itens += '</ul>';
+                        itens += ' </li>';
+                        if (!$(".list-group-" + sub0 + "-" + sub1 + "-sub").html()) {
+                            $(".list-group-" + sub0).append(itens);
+                        }
+
+                        var itens2 = '<li class="list-group-item list-group-child" style="margin: 5px;" ><a href="' + item.html_url.replace('pt-br', LOCALE) + '">' + subnivel[2].trim() + '</a></li>'
+                        $(".list-group-" + sub0 + '-' + sub1 + "-sub").append(itens2);
+
+                    }
+
+                }
+            }
+            $("li.list-group-child").on('mouseover', (e) => {
+                $(this).parent().parent().css("background-color", "white");
+            });
+            /* Favor não retira este evento pois existe um conflito de js na tela que simula o collapse */
+            $(".list-group-item a.eventPrevent").on("click", (e) => {
+                e.preventDefault();
+                var ul = e.target.hash;
+                if ($(ul).hasClass('in')) {
+                    $(ul).removeClass("in");
+                } else {
+                    $(ul).addClass("in");
+                }
+            });
+        }
+    }
+    $.ajax(url, options).done(resolve).fail();
+}
+
+function loadProducts () {
+    var url = URL13 + "/products";
+    var options = {
+        headers: { 'Content-Type': 'application/json' },
+        dataType: "json",
+        type: "GET"
+    };
+    var resolve = function (res) {
+        if (res.products) {
+            var urlPublic = 'https://centraldeatendimento.totvs.com/hc/contributions/posts?locale=' + LOCALE;
+
+            var urlComments = 'https://centraldeatendimento.totvs.com/hc/contributions/community_comments?locale=' + LOCALE;
+            var menu = '';
+            menu += '<button type="button" class="btn btn-default btn-md btn-block  btn-product" onclick="javascript:window.open(\'' + urlPublic + '\',\'_self\')" data-description="Minhas Publicações" >' + DC.minhas_publicacoes + '</button>';
+            menu += '<button type="button" class="btn btn-default btn-md btn-block  btn-product" onclick="javascript:window.open(\'' + urlComments + '\',\'_self\')" data-description="Meus Comentários" >' + DC.meus_comentarios + '</button>';
+
+            res.products.map(item => {
+                menu += '<button type="button" class="btn btn-default btn-md btn-block  btn-product" id="product-' + item.id + '" data-description="' + item.description + '" >' + item.description + '</button>';
+            });
+            $('.menu-products').html(menu);
+
+            // Adicionar os links adicionais no menu e colocar o portal do cliente por ultimo
+            $('#product-56').appendTo('.menu-products').html('Portal do Cliente TOTVS');
+            $('<a target="_blank" href="https://centraldeatendimento.totvs.com/hc/' + LOCALE + '/articles/360039466814-Funcionalidades-Dispon%C3%ADveis-na-Central-Colaborativa-TOTVS"><button type="button" class="btn btn-default btn-md btn-block  btn-product" id="product-1255" data-description="Datasul" style="color: #999">' + DC.conheca_a_central_colaborativa_totvs + '</button></a>').appendTo('.menu-products');
+            $('<a target="_blank" href="https://centraldeatendimento.totvs.com/hc/' + LOCALE + '/articles/360037255934-C%C3%B3digo-de-Conduta-Central-Colaborativa"><button type="button" class="btn btn-default btn-md btn-block  btn-product" id="product-1256" data-description="Datasul" style="color: #999">' + DC.codigo_de_conduta_central_colaborativa + '</button></a>').appendTo('.menu-products');
+
+            $('.btn-product').on('click', clickButtonProduct);
+            var community = $('.breadcrumbs li:last').text().trim().split(">");
+            $('button[data-description="' + community[0].trim() + '"]').addClass("btn-primary");
+
+            if (window.location.href.indexOf("community/posts/new") > -1) {
+                tinymce.activeEditor.setContent("<br>" + DC.favor_informar + ":<br><br>" + DC.como_voce_esta_hoje_o_que_pode_mudar_valor_entrega + "");
+            }
+
+        }
+    }
+    $.ajax(url, options).done(resolve).fail();
+}
+
+function submitPostButton () {
+    getUserSession((user) => {
+        var topic = $(".nesty-input").text().split(">");
+        var participante = "nao";
+        var _participante = "false";
+        if (document.getElementById("check-participative-post").checked) {
+            participante = "sim";
+            _participante = "true";
+        }
+        var dados = "<hr><p/><p/>\
+             <p>Atenção não mude os dados abaixo</p>\
+             <p>__Usuario: " + HelpCenter.user.name + "</p>\
+             <p>__email: "+ HelpCenter.user.email + "</p>\
+             <p>__Organizacao: "+ $(".razao-social-list ul li label .tkey").html() + "</p>\
+             <p>__Participante: "+ participante + "</p>\
+             <p>__Produto: "+ topic[0].trim() + "</p>\
+             <p>__Modulo: "+ topic[1].trim() + "</p>\
+             <p>__Status: none</p>";
+
+
+        $("body").loading(loading["options"]);
+        var url = URL17 + "/posts";
+        var data = {
+            "post": {
+                "title": $("#community_post_topic_id").find(":selected").text() + ' - ' + $("#community_post_title").val(),
+                "details": document.getElementById("community_post_details_ifr").contentDocument.body.innerHTML + dados,
+                "author_id": user.id,
+                "topic_id": $("#community_post_topic_id").val()
+            },
+            "participative": _participante
+        }
+        var options = {
+            data: JSON.stringify(data),
+            type: "POST",
+            dataType: "json",
+            contentType: "application/json"
+        };
+        var resolve = function (res) {
+            window.location = res.post.html_url;
+        }
+        var fail = function (err) {
+            $("body").loading("stop");
+            console.log('TOTVS guide submitPostButton: ', err);
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    });
+
+}
+
+async function putPostStatus (id_post) {
+    const url = URL17 + "/posts/" + id_post;
+    const data = {
+        "post": {
+            "status": "not_planned"
+        }
+    }
+    const options = {
+        data: JSON.stringify(data),
+        type: "PUT",
+        dataType: "json",
+        contentType: "application/json"
+    };
+    const resolve = function (res) {
+        location.reload();
+    }
+    const fail = function (err) {
+        console.log('TOTVS guide putPostStatus', err);
+    }
+    await $.ajax(url, options).done(resolve).fail(fail);
+}
+
+function createTicket () {
+    console.log('createTicket pelo guide TOTVS')
+    $("body").loading(loading["options"]);
+    var url = URL17 + "/ticketposts";
+    var tag = $("#topic-ticket").val().split(">");
+    var produto = 'jira_produto:_' + tag[0].trim().replace(" ", "_");
+    var modulo = 'jira_modulo:_' + tag[1].trim().replace(" ", "_");
+    var idComunidade = 'jira_id__post_comunidade:_' + $("#id-post-ticket").val();
+    var tagGrupoCentralColab = 'central_colaborativa_grupo_sim'
+    if (!$("#id-group").val() || $("#id-group").val() === '') {
+        tagGrupoCentralColab = 'central_colaborativa_grupo_nao'
+    }
+    var data = {
+        "ticket": {
+            "subject": $("#title-ticket-cc").val(),
+            "description": $("#description-ticket-cc").val(),
+            "requester_id": $("#id-requester-ticket-cc").val(),
+            "group_id": $("#id-group").val(),
+            "tags": [produto, modulo, 'central_colaborativa', idComunidade, tagGrupoCentralColab]
+        },
+        id_post: $("#id-post-ticket").val()
+    }
+    var options = {
+        data: JSON.stringify(data),
+        type: "POST",
+        dataType: "json",
+        contentType: "application/json"
+    };
+    var resolve = function (res) {
+        $("body").loading("stop");
+        var retorno = HelpCenter.user.tags.filter(function (item) {
+            return item === "participante_central_colaborativa"
+        });
+        if (retorno.length > 0) {
+            $(".ticket-or-button-create-ticket").html('<div class="div-number-ticket"><label><a href="https://suporte.totvs.com/portal/p/10098/consulta-tickets?ticket=' + res.id + '" target="_blank"> Ticket ' + res.id + '</a></label></div>');
+        }
+        putPostStatus($("#id-post-ticket").val());
+        closeModal();
+    }
+    var fail = function (err) {
+        console.log('TOTVS guide createTicket', err);
+        $("body").loading("stop");
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+function showModalCreateTicket () {
+    getUserSession((user) => {
+
+        if (user.email == "ti.digital@totvs.com.br") {
+            console.log("entrou");
+            var html = '<div id="modal-ticket" >\
+             <form>\
+                 <div class="form-group">\
+                     <label for="title-ticket">'+ DC.assunto + '</label>\
+                     <input type="text" class="form-control" id="title-ticket-cc" value="'+ $("#title-ticket").val() + '" placeholder="assunto">\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="description-ticket">'+ DC.descricao + '</label>\
+                     <textarea type="text" class="form-control" id="description-ticket-cc" placeholder="descrição" rows="7">\
+                     '+ $("#description-ticket").val() + '</textarea>\
+                     <input type="hidden" class="form-control" id="topic-ticket-cc" value="'+ $("#topic-ticket").val() + '" >\
+                     <input type="hidden" class="form-control" id="id-post-ticket-cc" value="'+ $("#id-post-ticket").val() + '" >\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="requester-ticket">'+ DC.solicitante + '</label>\
+                     <select id="id-requester-ticket-cc">\
+                         <option value="'+ $("#id-author-ticket").val() + '">' + $("#name-author-ticket").val() + '</option>\
+                         <option value="'+ user.id + '" selected>' + user.name + '</option>\
+                     </select>\
+                 </div>\
+                 <div class="form-group">\
+                 <label for="group-ticket">'+ DC.grupo_de_atendimento + '</label>\
+                 <select id="id-group"></select>\
+               </div>\
+             </form>\
+         </div>';
+            $(".div-modal-ticket .modal-body").append(html);
+            $('.div-modal-ticket').fadeIn('fast');
+            setaGruposZendesk();
+        } else {
+            var html = '<div id="modal-ticket" >\
+             <form>\
+                 <div class="form-group">\
+                     <label for="title-ticket">'+ DC.assunto + '</label>\
+                     <input type="text" class="form-control" id="title-ticket-cc" value="'+ $("#title-ticket").val() + '" placeholder="assunto">\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="description-ticket">'+ DC.descricao + '</label>\
+                     <textarea type="text" class="form-control" id="description-ticket-cc" placeholder="descrição" rows="7">\
+                     '+ $("#description-ticket").val() + '</textarea>\
+                     <input type="hidden" class="form-control" id="topic-ticket-cc" value="'+ $("#topic-ticket").val() + '" >\
+                     <input type="hidden" class="form-control" id="id-post-ticket-cc" value="'+ $("#id-post-ticket").val() + '" >\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="requester-ticket">'+ DC.solicitante + '</label>\
+                     <select id="id-requester-ticket-cc">\
+                         <option value="'+ $("#id-author-ticket").val() + '">' + $("#name-author-ticket").val() + '</option>\
+                         <option value="'+ user.id + '" selected>' + user.name + '</option>\
+                     </select>\
+                 </div>\
+                 <div class="form-group">\
+                 <label for="group-ticket">'+ DC.grupo_de_atendimento + '</label>\
+                 <select id="id-group"></select>\
+               </div>\
+             </form>\
+         </div>';
+            $(".div-modal-ticket .modal-body").append(html);
+            $('.div-modal-ticket').fadeIn('fast');
+            setaGruposZendesk();
+        }
+    });
+}
+
+function setaGruposZendesk () {
+    console.log('Buscando grupos...')
+    $('#id-group').select2({
+        minimumInputLength: 4,
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: "https://centraldeatendimento.totvs.com/api/v2/search",
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    query: 'type:group ' + params.term,
+                }
+
+                // Query parameters will be ?search=[term]&type=public
+                return query;
+            },
+            processResults: function (data, page) {
+                console.log(data)
+                return {
+                    results: data.results.map(elemento => {
+                        return {
+                            text: elemento.name,
+                            id: elemento.id
+                        }
+                    })
+                };
+            }
+        }
+    });
+
+    //ID FIXO DO GRUPO ATENDIMENTO PARA CARREGAR O GRUPO CENTRAL COLABORATIVA
+    //ID GRUPO HOMOLOG - 360016284174 | PROD 360007265253
+    const idGroupSelected = "360007265253";
+    const groupSearchDescription = "Central Colaborativa TOTVS";
+
+    $('#id-group').select2('open');
+    var $search = $('#id-group').data('select2').dropdown.$search || $('#id-group').data('select2').selection.$search;
+    $search.val(groupSearchDescription);
+    $search.trigger('keyup');
+    $("#id-group").select2("trigger", "select", {
+        data: { id: idGroupSelected, text: groupSearchDescription }
+    });
+}
+
+function closeModal () {
+    $(".div-modal-ticket .modal-body").html("");
+    $(".div-modal-issue .modal-body").html("");
+    $(".div-modal-vincular-issue .modal-body").html("");
+    $(".div-modal-view-voters .modal-body").html("");
+    $(".div-modal-set-classification .modal-body").html("");
+    $(".modal2").css('display', 'none');
+}
+function buttonOtherParticipative () {
+    getUserSession((user) => {
+        $("body").loading(loading["options"]);
+        var url = URL13 + "/postcommunity_memberships";
+        var botao = $(".button-other-participative");
+        var trueFalse = false;
+        if (botao.html() == "Participar" || botao.html() == "Participate") {
+            trueFalse = true;
+        }
+        var data = {
+            participative: trueFalse,
+            post_id: $("#id-post-ticket").val(),
+            user_id: user.id
+        }
+        var options = {
+            data: JSON.stringify(data),
+            type: "POST",
+            dataType: "json",
+            contentType: "application/json"
+        };
+        var resolve = function (res) {
+            if (trueFalse === true) {
+                $(".btn-show-button-or-participative").html('<label class="msg-participando" >' + DC.participando_financeiramente_desse_desenvolvimento + '</label><p><button class="btn btn-primary  button-other-living-participative" title="' + DC.deixar_de_participar + '">' + DC.deixar_de_participar + '</button></p>');
+                $(".button-other-living-participative").on('click', () => buttonOtherParticipative());
+                updatePost(null, "sim");
+            } else {
+                $(".btn-show-button-or-participative").html('<button class="btn btn-primary  button-other-participative" title="' + DC.participar_da_despesa_do_desenvolvimento_desta_contribuicao + '">' + DC.participar + '</button>');
+                $(".button-other-participative").on('click', () => buttonOtherParticipative());
+                updatePost(null, "nao");
+            }
+
+            $("body").loading("stop");
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide buttonOtherParticipative', err);
+            $("body").loading("stop");
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    });
+}
+
+function loadParticipative () {
+    getUserSession((user) => {
+        var url = URL13 + "/postcommunity_memberships/searchparticipative/" + $("#id-post-ticket").val() + "/" + user.id;
+        var options = {
+            type: "GET"
+        };
+        var resolve = function (res) {
+            if (res.postcommunity_memberships && res.postcommunity_memberships.participative) {
+                $(".btn-show-button-or-participative").html('<label class="msg-participando" >' + DC.participando_financeiramente_desse_desenvolvimento + '</label><p><button class="btn btn-primary  button-other-living-participative" title="' + DC.deixar_de_participar + '">' + DC.deixar_de_participar + '</button></p>');
+                $(".button-other-living-participative").on('click', () => buttonOtherParticipative());
+            } else {
+                $(".btn-show-button-or-participative").html('<button class="btn btn-primary  button-other-participative" title="' + DC.participar_da_despesa_do_desenvolvimento_desta_contribuicao + '">' + DC.participar + '</button>');
+                $(".button-other-participative").on('click', () => buttonOtherParticipative());
+            }
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide loadParticipative', err);
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    });
+}
+
+function loadNumberTicket () {
+    var url = URL13 + '/postcommunity/searchByIds/["' + $("#id-post-ticket").val() + '"]';
+    var options = {
+        type: "GET"
+    };
+    var resolve = function (res) {
+        if (res.postCommunitys.length > 0) {
+
+            var retorno = HelpCenter.user.tags.filter(function (item) {
+                return item === "participante_central_colaborativa"
+            });
+
+            var classificarRank = HelpCenter.user.tags.filter(function (item) {
+                return item === "classificar_rank_artigo"
+            });
+
+            if (res.postCommunitys[0].ticket_id && res.postCommunitys[0]?.ticket_status != 'deleted' && retorno.length > 0) {
+                $(".ticket-or-button-create-ticket").html('<div class="div-number-ticket"><label><a href="https://suporte.totvs.com/portal/p/10098/consulta-tickets?ticket=' + res.postCommunitys[0].ticket_id + '" target="_blank"> Ticket ' + res.postCommunitys[0].ticket_id + '</a></label></div>');
+                verifyTicketExistIssue();
+            } else {
+
+                if (retorno.length > 0) {
+                    $(".ticket-or-button-create-ticket").html('<button type="button" class="btn btn-primary btn-md btn-block  btn-show-modal-new-ticket" >' + DC.criar_um_ticket + '</button>');
+
+                    $(".btn-show-modal-new-ticket").on('click', () => showModalCreateTicket());
+                    $(".btn-show-modal-vincula-ticket").on('click', () => showModalVincularTicket());
+                }
+
+            }
+            if (retorno.length > 0) {
+                $(".view-voters").html('<button type="button" class="btn btn-primary btn-md btn-block  btn-show-modal-view-voters" >Visualizar Votantes</button>');
+                $(".btn-show-modal-view-voters").on('click', () => showModalViewVoters(res.postCommunitys[0].id));
+            }
+
+            if (classificarRank.length > 0) {
+                $(".set-classification").html('<button type="button" class="btn btn-primary btn-md btn-block  btn-show-modal-set-classification" >Classificação</button>');
+                $(".btn-show-modal-set-classification").on('click', () => showModalSetClassification(res.postCommunitys[0].id));
+                $("#set-modal-classification").on('click', () => setClassification(res.postCommunitys[0].id));
+            }
+
+        }
+    }
+    var fail = function (err) {
+        console.log('TOTVS guide loadNumberTicket', err);
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+/***Logica issues***/
+
+function loadButtonUnBindIssueTicket () {
+    $(".div-number-ticket").prepend('<div class="unbind" title="Desvincular issue x ticket">\
+         <span>\
+             <svg width="17" height="14" viewBox="0 0 12 11.87" xmlns="http://www.w3.org/2000/svg">\
+                 <path fill="#CCC" d="M417,601.74a2.46,2.46,0,0,1-1.75-.74,2.41,2.41,0,0,1-.76-1.74,3.08,3.08,0,0,1,1-2.15l1.46-1.44a.75.75,0,1,1,1.05,1.07l-1.46,1.44a1.64,1.64,0,0,0-.56,1.09.92.92,0,0,0,.31.67c.72.71,1.56,0,1.8-.24l1.46-1.44a.75.75,0,1,1,1.05,1.07l-1.46,1.44A3.11,3.11,0,0,1,417,601.74Z" transform="translate(-414.5 -589.87)"></path>\
+                 <path fill="#CCC" d="M423.26,596.41a.75.75,0,0,1-.53-1.28l1.71-1.7a1.64,1.64,0,0,0,.56-1.09.92.92,0,0,0-.31-.67c-.72-.72-1.56,0-1.8.24l-1.72,1.7a.75.75,0,1,1-1.05-1.07l1.72-1.7a2.68,2.68,0,0,1,3.91-.24,2.41,2.41,0,0,1,.76,1.74,3.08,3.08,0,0,1-1,2.15l-1.71,1.7A.75.75,0,0,1,423.26,596.41Z" transform="translate(-414.5 -589.87)"></path>\
+                 <path fill="#CCC" d="M423.93,600.19a.75.75,0,0,1-.53-.22l-7.57-7.48a.75.75,0,0,1,1.05-1.07l7.57,7.48a.75.75,0,0,1-.53,1.28Z" transform="translate(-414.5 -589.87)"></path>\
+             </svg>\
+         </span>\
+     </div>');
+
+    $(".unbind").on('click', function () {
+        desvincularIssueTicket();
+    });
+
+}
+
+function desvincularIssueTicket () {
+    var issue = $(".div-number-issue label a").html().replace("Issue", "").trim();
+    var ticket = $(".div-number-ticket label a").html().replace("Ticket", "").trim();
+    if (confirm("Tem certeza que deseja desvincular a issue: " + issue + " do ticket?")) {
+        unBindTicket(issue, ticket);
+    }
+}
+
+async function unBindTicket (_issueKey, _ticket) {
+    getUserSession((user) => {
+        $("body").loading(loading["options"]);
+
+        var url = URL13 + '/jira/unbindTicket';
+        var user_name = user.name;
+
+        var options = {
+            contentType: 'application/json',
+            type: "POST",
+            data: JSON.stringify({ issueKey: _issueKey, ticket: _ticket, user_name: user_name })
+        };
+
+        var resolve = function (res) {
+            if (res.statusCode === 200) {
+                $(".div-number-issue").remove();
+                $(".unbind").remove();
+                loadNumberIssue();
+            } else {
+                alert('Estamos com instabilidade na integração com o JIRA. Aguarde alguns minutos e faça uma nova tentativa.');
+            }
+            $("body").loading("stop");
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide unBindTicket', err);
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    });
+}
+
+function verifyTicketExistIssue () {
+    if ($(".ticket-or-button-create-ticket .div-number-ticket").html()) {
+        var url = URL13 + '/jiraticket/byticket/' + $(".div-number-ticket a").html().replace("Ticket", "").trim();
+        var options = {
+            type: "GET"
+        };
+        var resolve = function (res) {
+            if (res.zendesk_ticket_jira_issues.length > 0) {
+                if (res.zendesk_ticket_jira_issues[0].IssueKey) {
+                    $(".div-number-ticket").append('<div class="div-number-issue"><label><a href="' + URLJIRA + res.zendesk_ticket_jira_issues[0].IssueKey + '" target="_blank"> Issue ' + res.zendesk_ticket_jira_issues[0].IssueKey + '</a></label></div>');
+                    loadButtonUnBindIssueTicket();
+                }
+            } else {
+                var retorno = HelpCenter.user.tags.filter(function (item) {
+                    return item === "participante_central_colaborativa"
+                });
+                if (retorno.length > 0) {
+                    loadNumberIssue();
+                }
+            }
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide verifyTicketExistIssue', err);
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    }
+
+}
+
+function loadNumberIssue () {
+    $(".div-number-ticket").append('<div class="div-number-issue"><button type="button" class="btn btn-primary btn-md btn-block  btn-show-modal-new-issue" >' + DC.criar_issue + '</button></div>');
+    $(".btn-show-modal-new-issue").on('click', () => showModalCreateIssue());
+    $(".div-number-ticket").append('<div class="div-vincular-issue"><button type="button" style="color:white" class="btn-show-modal-vincular-issue button-fake-grey" >Vincular Issue</button></div>');
+    $(".btn-show-modal-vincular-issue").on('click', () => showModalVincularIssue());
+}
+
+function showModalCreateIssue () {
+    getUserSession((user) => {
+        var html = '<div id="modal-issue" >\
+             <form class="form-jira">\
+                 <div class="form-group jira-project">\
+                     <label for="jira-key-project">'+ DC.campos_motivo_priorizacao_projeto + ' <i style="color:red">*</i></label>\
+                     <div class="jira-key-project-validate">\
+                             <select class="filtros" id="jira-key-project" name="project" style="width:100%"></select>\
+                     </div>\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="jira-requester">'+ DC.relator + ' <i style="color:red">*</i></label>\
+                     <div class="jira-requester-validate">\
+                         <select id="jira-requester" name="reporter" placeholder="relator" ></select>\
+                     </div>\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="jira-assignee">'+ DC.atribuido + '</label>\
+                         <select id="jira-assignee" name="assignee"  placeholder="'+ DC.atribuido + '" ></select>\
+                     </div>\
+                   <div class="form-group">\
+                     <label for="jira-issue-type">'+ DC.tipo_issue + ' <i style="color:red">*</i></label>\
+                     <div class="jira-issue-type-validate">\
+                         <select id="jira-issue-type" name="issuetype"></select>\
+                     </div>\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="jira-subject">'+ DC.assunto + ' <i style="color:red">*</i></label>\
+                     <div class="jira-subject-validate">\
+                         <input type="text" class="form-control" id="jira-subject" name="summary" value="'+ $("#title-ticket").val() + '" placeholder="' + DC.assunto + '">\
+                     </div>\
+                 </div>\
+                 <div class="form-group">\
+                     <label for="jira-summary">'+ DC.descricao + ' <i style="color:red">*</i></label>\
+                     <div class="jira-summary-validate">\
+                         <textarea type="text" class="form-control" id="jira-summary" placeholder="'+ DC.descricao + '" rows="7" name="description">' + $("#description-ticket").val() + '</textarea>\
+                     </div>\
+                 </div>\
+                 <input type="hidden" name="ticket" value="'+ $(".div-number-ticket a").html().replace("Ticket", "").trim() + '">\
+                 <input type="hidden" name="id_user_logged" value="'+ user.id + '">\
+                 <input type="hidden" name="email_user_logged" value="'+ user.email + '">\
+                 <div class="div-jira-custom-fields"></div>\
+                 <div class="div-field-research-lines"></div>\
+             </form>\
+         </div>';
+        $(".div-modal-issue .modal-body").append(html);
+        loadProjectsIssue();
+    });
+}
+
+function loadProjectsIssue () {
+    var url = URL13 + "/project";
+    var options = {
+        type: "GET"
+    };
+    var resolve = function (res) {
+        if (res && res.project && res.project.length > 0) {
+            $('#jira-key-project').select2();
+            $('#jira-key-project').append($('<option>', {
+                value: '',
+                text: '',
+                key: ''
+            }));
+            res.project.map(item => {
+                $('#jira-key-project').append($('<option>', {
+                    value: item.id,
+                    text: item.name + ' ' + '(' + item.key + ')',
+                    key: item.key
+                }));
+            });
+            setaPermissionsJira();
+            $('.div-modal-issue').fadeIn('fast');
+            $('#jira-key-project').on('change', function () {
+                loadCreateMetaIssue(this.value);
+            });
+        }
+    }
+    var fail = function (err) {
+        console.log('TOTVS guide loadProjectsIssue', err);
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+var ISSUETYPES = [];
+
+function loadCreateMetaIssue (idIssue) {
+    var url = URL13 + "/createmeta/" + idIssue;
+    var options = {
+        type: "GET"
+    };
+    var resolve = function (res) {
+        if (res && res.projects && res.projects.issuetypes && res.projects.issuetypes.length > 0) {
+            $('#jira-issue-type').html('');
+            $('#jira-issue-type').append($('<option>', {
+                value: '',
+                text: ''
+            }));
+
+            //LIMITANDO OS TIPOS DE ISSUE PARA EPICO/HISTÓRIA,PARTICIPATIVO
+            //IDS SÃO OS MESMO PROD E HOMOLOG
+            const ISSUE_TYPES_ALLOWED = {
+                EPIC: 10000,
+                STORY: 10001,
+                PARTICIP: 11108
+            };
+
+            res.projects.issuetypes.map(item => {
+                if (item.id == ISSUE_TYPES_ALLOWED.EPIC ||
+                    item.id == ISSUE_TYPES_ALLOWED.STORY ||
+                    item.id == ISSUE_TYPES_ALLOWED.PARTICIP) {
+                    $('#jira-issue-type').append($('<option>', {
+                        value: item.name,
+                        text: item.name,
+                        key: item.id,
+                        selected: item.id == ISSUE_TYPES_ALLOWED.EPIC
+                    }));
+                }
+            });
+
+            ISSUETYPES = res.projects.issuetypes;
+            $('#jira-issue-type').on('change', function () {
+                ISSUETYPES.map(item => {
+                    if (this.value === item.name) {
+                        loadCustomFields(item.fields);
+                    }
+                })
+            });
+
+            //VALUE FIXADO NOS CAMPOS TIPO ISSUE, DEMANDA E CLIENTE
+            const idClient = 10176;
+            $('#jira-issue-type option[key="' + ISSUE_TYPES_ALLOWED.EPIC + '"]').attr("selected", "true");
+            $('#jira-issue-type').change();
+            $('#customfield_10104 option[data-id="' + idClient + '"]').attr("selected", "true");
+
+            $('.div-modal-issue').fadeIn('fast');
+        }
+    }
+    var fail = function (err) {
+        console.log('TOTVS guide loadCreateMetaIssue', err);
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+function loadCustomFields (fields) {
+    $(".div-jira-custom-fields").html('');
+    if (fields) {
+        var excludes = ['project', 'assignee', 'reporter', 'issuetype', 'summary', 'description'];
+        var newFields = '';
+        Object.keys(fields).map(value => {
+            if (fields[value].required) {
+                var htmlField = '';
+                var nameFieldJIRA = getJIRANameField(fields[value].schema);
+
+                if (excludes.indexOf(nameFieldJIRA) == -1) {
+                    switch (fields[value].schema.type) {
+                        case "string":
+                            htmlField = '<div class="' + nameFieldJIRA + '-validate">';
+                            htmlField += '<input type="text" class="dynamic-field form-control"  id="' + nameFieldJIRA + '" name="' + nameFieldJIRA + '">';
+                            htmlField += '</div>';
+                            break;
+                        case "option":
+                            if (fields[value].schema.custom === 'com.atlassian.jira.plugin.system.customfieldtypes:select') {
+                                htmlField = '<div class="' + nameFieldJIRA + '-validate">';
+                                htmlField += '<select class="dynamic-field form-control"  id="' + nameFieldJIRA + '" name="' + nameFieldJIRA + '">';
+                                htmlField += '<option value="">.. selecione ..</option>';
+
+                                fields[value].allowedValues.map(option => {
+                                    htmlField += '<option value="' + option.value + '" data-id="' + option.id + '">' + option.value + '</option>';
+                                });
+
+                                htmlField += '</select>';
+                                htmlField += '</div>';
+                            }
+                            break;
+                        case "array":
+                            htmlField = '<div class="' + nameFieldJIRA + '-validate">';
+                            htmlField += '<select class="dynamic-field form-control"  id="' + nameFieldJIRA + '" name="' + nameFieldJIRA + '" required>';
+                            htmlField += '<option value="">.. selecione ..</option>';
+                            if (fields[value].allowedValues) {
+                                fields[value].allowedValues.map(option => {
+                                    htmlField += '<option value="' + option.id + '" data-id="' + option.id + '">' + option.name + '</option>';
+                                });
+                            }
+                            htmlField += '</select>';
+                            htmlField += '</div>';
+                            break;
+                        default:
+                            htmlField = '<div class="' + nameFieldJIRA + '-validate">';
+                            htmlField += '<input type="text" class="dynamic-field form-control"  id="' + nameFieldJIRA + '" name="' + nameFieldJIRA + '">';
+                            htmlField += '</div>';
+                    }
+
+                    newFields += '<div class="control-group">'
+                    newFields += '  <label class="control-label">' + fields[value].name + ' <i style="color:red">*</i></label>';
+                    newFields += '  <div class="controls">'
+                    newFields += htmlField;
+                    newFields += '  </div>';
+                    newFields += '</div>';
+                }
+            }
+        });
+
+        $(".div-jira-custom-fields").html(newFields);
+
+        const leiDoBem = $('#customfield_10200');
+        if (leiDoBem && leiDoBem.length > 0) {
+            leiDoBem.on('change', function () {
+                if (this.value === "Sim") {
+                    loadInputResearchLines(this.value);
+                } else {
+                    $(".div-field-research-lines").html('');
+                }
+            });
+        }
+
+    } else {
+        $(".div-jira-custom-fields").html('');
+    }
+
+}
+
+function loadInputResearchLines () {
+    const url = URL13 + "/createmeta/" + $("#jira-key-project option:selected").attr("value");
+    const options = {
+        type: "GET"
+    };
+    const resolve = function (res) {
+        if (res && res.projects && res.projects.issuetypes && res.projects.issuetypes.length > 0) {
+            let htmlField = '';
+            let newFields = '';
+            let nameFieldJIRA = 'customfield_20100';
+            res.projects.issuetypes.map(item => {
+                if (item && item.fields && item.fields[nameFieldJIRA]) {
+                    htmlField = '<div class="' + nameFieldJIRA + '-validate">';
+                    htmlField += '<select class="dynamic-field form-control"  id="' + nameFieldJIRA + '" name="' + nameFieldJIRA + '">';
+                    htmlField += '<option value="">.. selecione ..</option>';
+
+                    item.fields[nameFieldJIRA].allowedValues.map(option => {
+                        htmlField += '<option value="' + option.value + '" data-id="' + option.id + '">' + option.value + '</option>';
+                    });
+
+                    htmlField += '</select>';
+                    htmlField += '</div>';
+                    newFields += '<div class="control-group">'
+                    newFields += '  <label class="control-label">' + item.fields[nameFieldJIRA].name + ' <i style="color:red">*</i></label>';
+                    newFields += '  <div class="controls">'
+                    newFields += htmlField;
+                    newFields += '  </div>';
+                    newFields += '</div>';
+                }
+            })
+
+            $(".div-field-research-lines").html(newFields);
+
+        }
+    }
+    var fail = function (err) {
+        alert('Não conseguimos carregar o campo Linhas de Pesquisa por uma instabilidade com o servidor. Aguarde alguns minutos e faça uma nova tentativa.');
+        $('#customfield_10200').val('');
+        $("body").loading("stop");
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+function vinculaIssue () {
+    $("body").loading(loading["options"]);
+    var url = URL13 + '/jira/bindTicket';
+    var ticketKey = $(".div-number-ticket label a").html().replace("Ticket", "").trim();
+    var data = {
+        ticket: ticketKey,
+        issueKey: $("#issue_id_vinculo").val(),
+        typeBind: "ISSUE"
+    }
+    var options = {
+        data: data,
+        type: "POST"
+    };
+    var resolve = function (res) {
+        if (res.statusCode === 200) {
+            document.location.reload();
+        } else if (res.message) {
+            alert(res.message);
+        } else if (res.body && res.body.errors && res.body.errors.validation) {
+            if (res.body.errors.validation.indexOf("is already linked") != -1) {
+                alert("Esta Issue já está vinculada à um Ticket. ")
+            }
+        }
+        $("body").loading("stop");
+    }
+    var fail = function (err) {
+        alert(JSON.parse(err.responseText).message);
+        $("body").loading("stop");
+    }
+    $.ajax(url, options).done(resolve).fail(fail);
+}
+
+function showModalVincularIssue () {
+    getUserSession((user) => {
+        var html = '<div id="modal-vincular-issue" >\
+                      <form onSubmit="return false;">\
+                         <div class="form-group">\
+                           <label for="title-issue">Informe a key da Issue</label>\
+                           <input type="text" class="form-control" id="issue_id_vinculo" value="" placeholder="Issue">\
+                         </div>\
+                      </form>\
+                  </div>';
+        $(".div-modal-vincular-issue .modal-body").append(html);
+        $("#issue_id_vinculo").on('keyup', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                vinculaIssue();
+            }
+        });
+        $('.div-modal-vincular-issue').fadeIn('fast');
+    });
+}
+
+function getJIRANameField (schema) {
+    if (schema.system) {
+        return schema.system;
+    } else if (schema.custom) {
+        return "customfield_" + schema.customId;
+    }
+}
+
+function setaPermissionsJira () {
+    $('#jira-requester').select2({
+        minimumInputLength: 4,
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: URL13 + "/permissions",
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    name: params.term,
+                    key: $("#jira-key-project option:selected").attr("key"),
+                    permission: 'CREATE_ISSUES'
+                }
+                return query;
+            },
+            processResults: function (data, page) {
+                return {
+                    results: data.permissions.map(elemento => {
+                        return {
+                            text: elemento.displayname,
+                            id: elemento.username
+                        }
+                    })
+                };
+            }
+        }
+    });
+
+    $('#jira-assignee').select2({
+        minimumInputLength: 4,
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: URL13 + "/permissions",
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    name: params.term,
+                    key: $("#jira-key-project option:selected").attr("key"),
+                    permission: 'ASSIGN_ISSUES'
+                }
+                return query;
+            },
+            processResults: function (data, page) {
+
+                return {
+                    results: data.permissions.map(elemento => {
+                        return {
+                            text: elemento.displayname,
+                            id: elemento.username
+                        }
+                    })
+                };
+            }
+        }
+    });
+}
+
+function validFormIssue () {
+    var a = $(".form-jira :input").filter((i, item) => {
+        $("." + item.id + "-validate").css('border-radius', '');
+        $("." + item.id + "-validate").css('border', '');
+        $("." + item.id + "-validate").css('border-color', '');
+        return item.name !== "assignee" && !item.value
+    });
+    a.map((i, item) => {
+        $("." + item.id + "-validate").css('border-radius', '5px');
+        $("." + item.id + "-validate").css('border', '1px solid');
+        $("." + item.id + "-validate").css('border-color', '#ce2d2d');
+    });
+    return a.length === 0;
+}
+
+function createIssue () {
+    if (validFormIssue()) {
+        $("body").loading(loading["options"]);
+        var url = URL13 + "/jira/createissue";
+        var options = {
+            contentType: 'application/json',
+            type: "POST",
+            data: JSON.stringify($('.form-jira').serializeArray())
+        };
+        var resolve = function (res) {
+            if (res.statusCode === 200 || res.statusCode === 201) {
+                if (res.body.key) {
+                    location.reload();
+                } else if (res.body.errors && res.body.errors.key) {
+                    $('.div-number-issue').html('<label><a href="' + URLJIRA + res.errors.key + '" target="_blank"> Issue ' + res.errors.key + '</a></label></div>');
+                    loadButtonUnBindIssueTicket();
+                }
+            }
+            else if (res.statusCode === 400 || res.statusCode === 500) {
+                console.log('ERRO 1 (jira/createissue no guide TOTVS):', res)
+
+                let msgError = 'Ocorreu uma falha na integração. \n';
+                msgError += 'Tente novamente mais tarde e, caso o problema persista, entre em contato com o Administrador.';
+
+                if (res?.body?.errors) {
+                    msgError += '\n\n';
+                    msgError += JSON.stringify(res.body.errors);
+                }
+
+                alert(msgError);
+            }
+            else {
+                console.log('ERRO 2 (jira/createissue no guide TOTVS):', res)
+                alert('Estamos com instabilidade na integração com o JIRA. Sua issue já foi registrada e está na fila para ser criada. Não é necessário criar outra issue, aguarde alguns minutos e ela será apresentada na área de aplicativos.');
+            }
+            closeModal();
+
+            $("body").loading("stop");
+        }
+        var fail = function (err, error) {
+            let errorMessage = 'Ocorreu uma falha na integração. \n';
+            errorMessage += 'Tente novamente mais tarde e, caso o problema persista, entre em contato com o Administrador.';
+
+            if (err.responseJSON) {
+                errorMessage = err.responseJSON;
+            }
+
+            if (err.responseText) {
+                try {
+                    const errorObj = JSON.parse(err.responseText);
+                    const errorsValues = Object.values(errorObj);
+                    errorMessage = '';
+                    for (let errorValue of errorsValues) {
+                        errorMessage += `\n${errorValue}`;
+                    }
+                }
+                catch (jsonParseError) {
+                    errorMessage = err.responseText;
+                }
+            }
+
+            console.log('TOTVS guide createIssue', errorMessage);
+            alert(errorMessage);
+            $("body").loading("stop");
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    } else {
+        alert("Favor preencher os campos obrigatórios");
+    }
+}
+/***Logica issues*****/
+
+function loadVerifyTicket () {
+    getUserSession((user) => {
+        var url = URL13 + "/postcommunity/searchparticipative/" + $("#id-post-ticket").val() + "/" + user.id;
+        var options = {
+            type: "GET"
+        };
+        var resolve = function (res) {
+            if (res.postcommunity_memberships && res.postcommunity_memberships.participative) {
+                $(".btn-show-button-or-participative").html('<label class="msg-participando" >' + DC.participando_financeiramente_desse_desenvolvimento + '</label>');
+            }
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide loadVerifyTicket', err);
+        }
+        $.ajax(url, options).done(resolve).fail(fail);
+    });
+}
+
+function onOffCheck () {
+    var checkBoxes = $('#check-participative-post');
+    checkBoxes.prop("checked", !checkBoxes.prop("checked"));
+}
+
+function beforeUpdatePost () {
+    $(".post-actions .dropdown .dropdown-menu a").each(function () {
+        try {
+            if ($(this).attr("aria-selected") == "true") {
+                updatePost($(this).attr("href").split("status=")[1]);
+            }
+        } catch (error) {
+            console.log('TOTVS guide beforeUpdatePost', error);
+        }
+
+    });
+}
+
+function updatePost (status, participativo) {
+    $("body").loading(loading["options"]);
+    var dados = $(".content-body.post-body").html();
+    if (status) {
+        if (dados.indexOf("__Status:") > -1) {
+            var ini = $(".content-body.post-body").html().indexOf("__Status:");
+            var fim = dados.substring(ini, dados.length).indexOf("</p>");
+            if (dados.substring(ini, ini + fim).replace("__Status: ", "") == status) {
+                $("body").loading("stop");
+                return;
+            }
+            dados = dados.replace(dados.substring(ini, ini + fim), "__Status: " + status);
+        } else {
+            dados += "<p>__Status: " + status + "</p>";
+        }
+    } else {
+        if (dados.indexOf("__Participante:") > -1) {
+            var ini = $(".content-body.post-body").html().indexOf("__Participante:");
+            var fim = dados.substring(ini, dados.length).indexOf("</p>");
+            if (dados.substring(ini, ini + fim).replace("__Participante: ", "") == participativo) {
+                $("body").loading("stop");
+                return;
+            }
+            dados = dados.replace(dados.substring(ini, ini + fim), "__Participante: " + participativo);
+        } else {
+            dados += "<p>__Participante: " + participativo + "</p>";
+        }
+    }
+
+    while (1 == 1) {
+        if (dados.indexOf("\"") > -1) {
+            dados = dados.replace("\"", "'");
+        } else {
+            break;
+        }
+    }
+
+    var data = {
+        post: {
+            details: dados
+        }
+    };
+    var options = {
+        data: JSON.stringify(data),
+        type: "PUT",
+        dataType: "json",
+        contentType: "application/json"
+    };
+    var resolve = function (res) {
+        $("body").loading("stop");
+        location.reload();
+    }
+    var fail = function (err) {
+        $("body").loading("stop");
+    }
+    var urlPut = URL17 + "/posts/" + $("#id-post-ticket").val();
+    $.ajax(urlPut, options).done(resolve).fail(fail);
+}
+
+function updatePostProdutoModulo (body, title) {
+    while (1 == 1) {
+        if (body.indexOf("\"") > -1) {
+            body = body.replace("\"", "'");
+        } else {
+            break;
+        }
+    }
+    var data = {
+        post: {
+            details: body,
+            title: title
+        }
+    };
+    var options = {
+        data: JSON.stringify(data),
+        type: "PUT",
+        dataType: "json",
+        contentType: "application/json"
+    };
+    console.log(data)
+    var resolve = function (res) {
+        location.reload();
+        console.log(res);
+    }
+    var fail = function (err) {
+        console.log(err);
+    }
+    var urlPut = URL17 + "/posts/" + $("#id-post-ticket").val();
+    $.ajax(urlPut, options).done(resolve).fail(fail);
+}
+
+function verificaPermissao () {
+    $(".link-central-colaborativa").css("display", "block");
+}
+
+$(function () {
+    if (document.URL.indexOf("contributions/community_comments") > -1) {
+        $('#linkCommunityComments').addClass('active');
+        $('#linkContribuitions').removeClass('active');
+    } else if (document.URL.indexOf("contributions/posts") > -1) {
+        $('#linkContribuitions').addClass('active');
+        $('#linkCommunityComments').removeClass('active');
+    }
+    if (document.URL.indexOf("community/posts") > -1 || document.URL.indexOf("community/topics") > -1) {
+
+        beforeUpdatePost();
+
+        $('.content-body.post-body hr ~ p').css('display', 'none');
+        loadParticipative();
+        loadNumberTicket();
+        loadProducts();
+
+        $(".topic-relation-with-post").hide();
+
+        $(".button-submit-ticket").on('click', () => createTicket());
+        $("#create-issue").on('click', function () { createIssue(); });
+        $(".button-submit-post").on('click', () => submitPostButton());
+
+        $("#vincular-issue").on('click', () => { vinculaIssue() });
+
+        $('.esquerda .post-follow a').addClass('btn btn-info').removeAttr('role');
+        $('.breadcrumbs li:first').remove();
+        $('.breadcrumbs-div').show();
+
+        $('#create-ticket').on('click', function (ev) {
+            createTicket()
+        });
+        $('#close-modal').on('click', function (ev) {
+            closeModal();
+        });
+
+        $('#close-modal-view-voters, #close-modal-voters').on('click', function (ev) {
+            closeModal();
+        });
+
+        $('#close-modal-set-classification, #close-modal-classification').on('click', function (ev) {
+            closeModal();
+        });
+
+        $('#close-modal-issue').on('click', function (ev) {
+            closeModal();
+        });
+
+        $('#close-modal-vincular-issue').on('click', function (ev) {
+            closeModal();
+        });
+
+        if (document.URL.indexOf("community/topics") > -1) {
+            $('.breadcrumbs li:first').remove();
+            $('.breadcrumbs-div').show();
+        }
+
+        //---------------------Não mexer feito assim pois gera problema na atualização do details da edição
+        $("div.post-actions span.dropdown span.dropdown-menu a").on("click", function (e) {
+            if (this.dataset["action"] == "edit-post") {
+                setTimeout(
+                    function () {
+                        $("#zd-edit-post-topic-id").on("change", function () {
+                            var posicao = $("#zd-edit-post-title").val().indexOf("-");
+                            var title = $("#zd-edit-post-title").val().substring(posicao + 1, $("#zd-edit-post-title").val().length).trim();
+                            $("#zd-edit-post-topic-id option").each((e, item) => { $("#zd-edit-post-title").val($("#zd-edit-post-title").val().replace(item.text, $("#zd-edit-post-topic-id option:selected").text())) });
+                        });
+
+                        $("#zd-edit-post-update").on("click", function () {
+                            var $frame = document.getElementById("zd-wysiwyg_ifr");
+                            var body = $frame.contentDocument.body.innerHTML;
+                            var dado = $("#zd-edit-post-topic-id option:selected").text().split(">");
+                            if (body && body.indexOf("__Produto:") > -1 && dado && dado[0]) {
+                                var ini = body.indexOf("__Produto:");
+                                var fim = body.substring(ini, body.length).indexOf("</p>");
+                                body = body.replace(body.substring(ini, ini + fim), "__Produto: " + dado[0].trim());
+                            }
+                            if (body && body.indexOf("__Modulo:") > -1 && dado && dado[1]) {
+                                var ini = body.indexOf("__Modulo:");
+                                var fim = body.substring(ini, body.length).indexOf("</p>");
+                                body = body.replace(body.substring(ini, ini + fim), "__Modulo: " + dado[1].trim());
+                            }
+                            updatePostProdutoModulo(body, $("#zd-edit-post-title").val());
+                        });
+                    }, 2000);
+            }
+        });
+        //---------------------
+
+
+    }
+    setTimeout(function () { verificaPermissao(); }, 5000);
+
+});
+
+function transforma_magicamente (s) {
+    function duas_casas (numero) {
+        if (numero <= 9) {
+            numero = "0" + numero;
+        }
+        return numero;
+    }
+    let hora = duas_casas(Math.floor(s % 3600 / 60));
+    let minuto = duas_casas((s % 3600) % 60);
+    let formatado = hora + ":" + minuto;
+    return formatado;
+}
+
+function calculaHoras (ticket_id) {
+    var params = {
+        "filtros": {
+            "efetuar_cobranca": "1", "ticket_id": ticket_id,
+            "consultoria_aceita": "3",
+            "empresa_publica": "3",
+            "data_inicio_data_faturamento": "",
+            "data_fim_data_faturamento": "",
+            "data_inicio_data_apontamento": "",
+            "data_fim_data_apontamento": ""
+        },
+        "pagina": 0,
+        "quantidade": 100,
+        "ordenar": { "coluna": "ticket_id", "ordem": "asc" }
+    }
+    $.ajax({
+        type: "POST",
+        contentType: 'application/json',
+        url: "https://ti-services.totvs.com.br/api/v1/totvs-faturamento/grid/buscarDados",
+        data: JSON.stringify(params),
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            console.log("TOTVS guide calculaHoras error", XMLHttpRequest, textStatus, errorThrown)
+        },
+        success: function (data, status, xhr) {
+            if (data.totalTempoRecordsFiltered) {
+                $(".event_total_hours dt").css("color", "red");
+                $(".event_total_hours dt").html("Total de horas faturáveis:");
+                $(".event_total_hours dd span").html(transforma_magicamente(data.totalTempoRecordsFiltered));
+            }
+        }
+
+    });
+}
+
+/**
+ * download de anexos pc sistemas
+ */
+var attachmentsPcSistemas = [];
+$(function () {
+
+    setTimeout(function () {
+        // Não remova o load produtos, se não, sabe NÂO MEXE. Comentei sua "arte" ai embaixo para não prejudicar a gente aqui.
+        loadProducts();
+    }, 1500);
+
+    if (document.URL.indexOf("requests") > -1 && requestIdPcSistemas && requestIdPcSistemas != '—') {
+        var ticket = {
+            requestid: requestIdPcSistemas
+        }
+        var options = {
+            contentType: "application/json",
+            data: JSON.stringify(ticket),
+            type: "POST",
+            url: "https://mid.totvs.com:8087/pcsistemas/attachments/"
+        };
+
+        var resolve = function (res) {
+            attachmentsPcSistemas = res;
+
+            let templateAtt = '<dt>Anexos PC Sistemas</dt>';
+            templateAtt += '<dd>';
+            templateAtt += '<ul class="attachment-list">'
+            for (const att of attachmentsPcSistemas) {
+
+                templateAtt += '<li>'
+                templateAtt += '<a href="https://mid.totvs.com:8087/pcsistemas/attachment/' + ticket.requestid + '/' + att.attachmentId + '/' + att.fileName + '" target="_blank">' + att.name + ' </a>'
+                templateAtt += '</li>'
+            }
+            templateAtt += '</ul>'
+            templateAtt += '</dd>'
+
+            $('#divAttachmentsPc').html(templateAtt)
+        }
+        var fail = function (err) {
+            console.log('TOTVS guide Erro attachmentsPcSistemas', err)
+        }
+        $.ajax(options).done(resolve).fail(fail);
+    }
+});
+
+function showModalViewVoters (id) {
+
+    const url = `https://ti-services.totvs.com.br/api/v1/centralcolaborativa/centralofcontributions/${id}/votes?type=9`;
+
+    $.ajax({
+        type: "GET",
+        contentType: 'application/json',
+        url: url,
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            console.log("TOTVS guide view voters error", XMLHttpRequest, textStatus, errorThrown)
+        },
+        success: function (data, status, xhr) {
+            let listVoters = '';
+            console.log(data)
+            for (let i = 0; i < data.length; i++) {
+
+                const valueVote = (data[i].value > 0) ? '<span class="vote-up"><span>' : '<span class="vote-down"><span>';
+
+                listVoters += `
+                <tr>
+                    <td>${data[i].organization_name}</td>
+                    <td>${data[i].author_name}</td>
+                    <td style="text-align: center;">${formatDate(data[i].updated_at)}</td>
+                    <td style="text-align: center;">${valueVote}</td>
+                </tr> `;
+
+            }
+            const html = `<div id="modal-ticket-view-voters" >
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Organização</th>   
+                            <th>Usuário</th>
+                            <th style="text-align: center;">Data</th>
+                            <th style="text-align: center;">Voto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${listVoters}
+                    </tbody>
+                </table>
+            </div>`;
+
+            $(".div-modal-view-voters .modal-body").html(html);
+            $('.div-modal-view-voters').fadeIn('fast');
+
+        }
+
+    });
+
+    function formatDate (date) {
+        var d = new Date(date),
+            month = '' + (d.getMonth() + 1),
+            day = '' + d.getDate(),
+            year = d.getFullYear();
+
+        if (month.length < 2)
+            month = '0' + month;
+        if (day.length < 2)
+            day = '0' + day;
+
+        return [day, month, year].join('/');
+    }
+
+
+}
+
+function showModalSetClassification (id) {    
+  console.log(id)
+    const url = `https://ti-services.totvs.com.br/api/v1/centralcolaborativa/centralofcontributions/${id}`;    
+
+    const html = `
+    <form>
+        <div class="form-group">
+            <label for="title-classification">Classificação</label>
+            <input type="number" min="0" class="form-control" id="value-classification">
+        </div>
+    </form>
+    `;
+
+    $.ajax({
+        type: "GET",
+        contentType: 'application/json',
+        url: url,
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            console.log("TOTVS guide classification error", XMLHttpRequest, textStatus, errorThrown)
+        },
+        success: function (data, status, xhr) {
+            if (data) {
+                $("#value-classification").val(data.classification)
+            } else {
+                $("#value-classification").val(0)
+            }
+        }
+
+    });
+
+    $(".div-modal-set-classification .modal-body").html(html);
+    $('.div-modal-set-classification').fadeIn('fast');
+
+}
+
+function setClassification (id) {
+    const url = `https://ti-services.totvs.com.br/api/v1/centralcolaborativa/centralofcontributions/${id}`;
+    
+    const valueClassification = $("#value-classification").val();
+    const data = { "classification": valueClassification };
+
+    $.ajax({
+        type: "PUT",
+        contentType: 'application/json',
+        url: url,
+        data: JSON.stringify(data),
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            console.log("TOTVS guide classification error", XMLHttpRequest, textStatus, errorThrown)
+        },
+        success: function (data, status, xhr) {
+            closeModal();
+        }
+
+    });
+}
+
+ //* FIM Guide TOTVS script.js
+
+

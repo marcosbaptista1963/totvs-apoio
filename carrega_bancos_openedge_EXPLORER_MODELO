@@ -1,0 +1,36 @@
+@echo off
+REM #***************************************************************************
+REM # File..................: prd-dts12-carregabancos.cmd
+REM # Description...........: Startup database
+REM #***************************************************************************
+
+set DLC=D:\Progress\dlc117
+set PATH=%DLC%;%DLC%\bin;%PATH%
+set DIR_BD=D:\Totvs\datasul\dts12\bancos\producao
+
+@echo -------------------------------------------------------
+@echo              STARTUP TOTVS 12 - PRODUCAO
+@echo -------------------------------------------------------
+
+D:
+cd %DIR_BD%
+
+for %%i in ( payroll eai ems2adt ems2cad ems2dbr-hosp ems2esp ems2mov ems2sor ems5cad ems5mov emsdca emsdev emsfnd finance mdmerge mdtfrw ) do (
+   cls.
+   @echo .
+   @echo ----------------------------------
+   @echo ----- Carga Banco: %%~ni
+   @echo ----------------------------------
+   @echo .
+   call dbman -start -database prd-dts12-%%~ni
+)
+
+@echo .
+@echo .
+@echo Start AppServer...
+@echo ------------------------------------------------------
+call asbman -name datasul-8080-producao -stop
+call asbman -name datasul-8080-producao -start
+
+
+

@@ -1,0 +1,70 @@
+Para arquivos binários gerados com mais de 2.0 GB, deve-se fazer o seguinte processo.
+
+1- Passar o parâmetro no banco
+
+
+proutil banco -C enablelargefile 
+
+
+2- Criar um arquivo, com o nomedobanco.srt
+* Se o meu banco tiver 10 GB, tenho que criar 10 extenções de 1,0 GB.
+
+(conteúdo)
+
+
+1024000 c:\temp
+1024000 c:\temp
+0 c:\temp
+
+
+
+
+* colocar o arquivo no mesmo diretorio do banco...
+
+* Reindexar o banco
+_proutil mov2fis -C idxbuild all -TB 31 -TM 32 -SG 64 -thread 1 -threadnum 2 -spin 150000
+
+** Novo - utlizando no mínimo service pack 5
+_proutil mov2emp -C idxbuild all -TB 64 -TF 90 -SG 64 -thread 1 -threadnum 4 -spin 150000 | tee reindex_mov2emp.txt
+
+
+
+
+*** Reindexar apenas uma tabela
+
+proutil srmovfin -C idxbuild table nometabela
+proutil emsesp -C idxbuild table BLOCOK_TOTVS_GEOS -TB 64 -TF 90 -SG 64 -thread 1 -threadnum 4 -spin 150000
+
+
+-SG 64  (colocar ele no parametro da reindexacao....)
+
+
+*** Reindexar apenas uma tabela e um indice, mesmo com After Image no banco.
+
+proutil espmult.db -C idxactivate param-natureza.idx-cod-regra
+
+
+
+Com o service pack 5 liberado, algumas funcionalidades foram adicionadas ao processo de indexação.
+O parãmetro –TB, que antes tinha o valor máximo de 31, passou a ser limitado em 64. Esse parâmetro indica o tamanho do bloco para fazer o sort de dados. 
+Na prática, quanto maior melhor, logo esse parâmetro com o valor 64 deverá agilizar o processo de indexação.
+Foi criado o parâmetro –TF para o Progress carregar os dados para sort em memória. Antes era em disco. Informe para esse parâmetro o percentual de memória que 
+o Progress pode usar para executar o processo. Por exemplo, –TF 90, indica que o Progress poderá utilizar 90% da memória do servidor. Se o parâmetro não for 
+especificado, o Progress automaticamente tentará usar a metade da memória do servidor para o processo.
+Por último, o parâmetro –rusage informa estatísticas de utilização de recursos do servidor ao final do processo de indexação.
+Fiz um teste com um banco de dados de aproximadamente 6 Gigabytes em um servidor Linux 64 com OpenEdge 10.2B02 64 bits. 
+Indexei esse banco 3 vezes para estabelecer o tempo médio de indexação em 233 segundos. O comando abaixo foi usado para indexar:
+proutil hcm210a –C idxbuild all –TB 31 –TM 32 –SG 64 –spin 2000 –thread 1 –threadnum 4
+
+Após instalar o service pack 5 indexei novamente o banco por 3 vezes, estabelecendo o tempo médio de 201 segundos. Dessa vez foram utilizados os novos 
+parâmetros. O comando executado foi:
+
+proutil hcm210a –C idxbuild all –TB 64 –TF 90 –SG 64 –spin 2000 –thread 1 –threadnum 4 –spin 150000
+
+Para esse banco, estabelecemos um ganho de aproximadamente 14%.
+Alerta: Fiz novos testes utilizando o parâmetro de estatística do processo (-rusage), e o tempo médio pulou para 219 segundos. 
+Teoricamente, quanto maior o banco de dados, maior será o percentual de ganho, até o limite de memória do servidor, pois o tempo de leitura dos dados em disco 
+não irá mudar. A redução do tempo está no processo de sort dos dados em memória, ao invés do disco.
+
+
+

@@ -1,0 +1,10 @@
+ROBOCOPY 
+
+SOBREPOSIÇÃO
+
+robocopy N:\totvs\datasul\dts-0\ERP\quarentena_12.1.2205.16 N:\totvs\datasul\dts-0\ERP\ *.* /V /S /E /COPYALL  /R:0 /W:0
+
+BACKUP COPIA 
+
+robocopy arquivo_1 arquivo_2 c:\temp\log1.txt /MIR /MT:10 /ETA /TEE /R:2 /W:2 /Z
+robocopy F:\Totvs\Datasul\Tomcat\instance-8080 F:\Totvs\Datasul\Tomcat\instance-8080_bkp_2301_6_05092023 /LOG:F:\Totvs\Datasul\Tomcat\log_8080.txt /MIR /MT:10 /ETA /TEE /R:2 /W:2 /Z

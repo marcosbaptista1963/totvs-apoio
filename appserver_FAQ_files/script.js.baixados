@@ -1,0 +1,3598 @@
+// Inicio script.js
+$(document).ajaxSend((event, jqxhr, settings) => {
+	logAjaxCountries("send", settings);
+});
+
+$(document).ajaxError((event, jqxhr, settings) => {
+	logAjaxCountries("error", settings);
+});
+
+$(document).ajaxComplete((event, jqxhr, settings) => {
+	logAjaxCountries("complete", settings);
+});
+
+function logAjaxCountries(acao, settings) {
+	if (settings.url.includes("api/catalogs/v2/3582332998/1/")) {
+		console.log(`### Ajax call Countries acao - ${acao.toUpperCase()} ###`);
+		console.log(`### Ajax call Countries URL  - ${settings.url} ###`);
+	}
+}
+
+function getCurrentIdioma () {
+	var currentUrl = window.location.href;
+	var currentLang = "pt-br";
+
+	if (currentUrl.toLowerCase().includes("/hc/pt-br")) currentLang = "pt-br";
+	else if (currentUrl.toLowerCase().includes("/hc/en-us")) currentLang = "en-us";
+	else if (currentUrl.toLowerCase().includes("/hc/es")) currentLang = "es";
+
+	return currentLang;
+}
+var compassRunning = false;
+var organizacao_selecionada = "";
+var $url = document.URL;
+var $chat_started = true;
+var departamento_capturado_modulo = "";
+var loadOptions =
+{
+	theme: 'light',
+	message: 'Carregando...',
+	stoppable: false,
+	zIndex: 99,
+	shownClass: 'waiting-cursor'
+};
+
+
+const ListaLinhaTAFTSS = {
+	grupo_taf_e_social_RM: "RM",
+	grupo_taf_e_social_Datasul: "Datasul",
+	grupo_taf_e_social_Protheus: "Protheus"
+};
+
+const form_ti = CST_CONFIGS.configs.forms.ti;
+const form_cst = CST_CONFIGS.configs.forms.cst;
+const form_universidade = CST_CONFIGS.configs.forms.universidade;
+
+var intervalId = null;
+var counter = 0;
+
+let hasKeywordsRestricted = false;
+
+let textMessageTotvsMyPassword = "<span style='font-weight: bold'>Atenção!</span><br/><br/>Identificamos que há o termo \"senhas\", \"password\" ou equivalente no texto de abertura do ticket.";
+textMessageTotvsMyPassword += " Segundo a política de segurança da TOTVS não deve ser enviada nenhuma informação de";
+textMessageTotvsMyPassword += " senhas no corpo de abertura do ticket.<br/>Caso seja necessário compartilhar essa informação,";
+textMessageTotvsMyPassword += " utilize nosso aplicativo de criptografia Minha senha TOTVS: <a href='https://minhasenha.totvs.com.br/' target='_blank'>https://minhasenha.totvs.com.br/home</a>";
+
+let confirmSendWithoutTotvsMyPassword = false;
+
+$(document).ready(function () {
+
+	try {
+		if (typeof checkDadosSessao === 'function') {
+			checkDadosSessao();
+			scriptLoadButtonVtex();
+		}
+	}
+	catch (e) {
+		console.error(e);
+	}
+
+	var tipos_clientes = getTiposClientes();
+	//Libera opção da Central Colaborativa para clientes PC Sistemas
+	if (tipos_clientes.is_cliente_pc_sistemas) {
+		$('.central-colabotativa-btn-init').css("display", "block");
+	}
+
+	/**
+	 * Tratamento para esconder botão no topo da tela junto com a ação do botão original do droz.
+	 */
+	$("#drz_btn_header").css("display", "block");
+
+	$("#drz_btn_header").on("click", function () {
+		$("#drz_btn_open").trigger("click");
+	});
+
+	if (window.location.href.includes("requests/new")) {
+		var btDroz = setInterval(function () {
+			if ($("#droz-brother-title").length > 0) {
+				$("#droz-brothers-btn-minimize").trigger("click");
+				clearInterval(btDroz);
+			}
+		}, 1000);
+	}
+
+	if (window.location.href.includes("search?query")) {
+		$("body").css("background-color", "#fff");
+	}
+
+	$(".user-info-dropdown").on("click", function () {
+		$(".menu-superior .user-info-container .user-info-loading").show();
+		$(".menu-superior .user-info-container .user-info-loading").hide();
+	});
+
+	setTimeout(function () {
+		$("a").each(function (index, element) {
+			if (element.href.includes("pt-br")) {
+				element.href = element.href.replace("pt-br", getCurrentIdioma());
+			}
+		});
+	}, 700);
+
+	zE(function () {
+		$zopim(function () {
+			if ($zopim.livechat.isChatting()) {
+				$("#chat-show").hide();
+				$("body").append(
+					'<div id="carregando-chat" style="position: fixed;left: 5px;bottom: 0px;padding: 9px 10px;background-color: #e88216;margin: 10px;border-radius: 4px;width: 190px;z-index: 88888;color: #fff;font-size: 14px;text-align: center;">Carregando Chat...</div>'
+				);
+			}
+			$zopim.livechat.setOnConnected(function () {
+				if ($zopim.livechat.isChatting()) {
+					$zopim.livechat.button.setPosition("bl");
+					$zopim.livechat.window.show();
+					$("#carregando-chat").hide();
+					window.$zopim.livechat.window.onHide(function () {
+						$zopim.livechat.button.setColor('#EA9B3E');
+						$zopim.livechat.theme.reload();
+						$("#chat-show").hide();
+						$(".zopim:first")
+							.show()
+							.css("width", "200px");
+					});
+					window.$zopim.livechat.window.onShow(function () {
+						$zopim.livechat.window.setColor('#494440');
+						$zopim.livechat.theme.reload();
+						$(".zopim:first").hide();
+						handleCustomZopimChatTimeout();
+					});
+					handleCustomZopimChatTimeout();
+				}
+			});
+		});
+	});
+
+	// social share popups
+	$(".share a").click(function (e) {
+		e.preventDefault();
+		window.open(this.href, "", "height = 500, width = 500");
+	});
+
+	// show form controls when the textarea receives focus or backbutton is used and value exists
+	var $commentContainerTextarea = $(".comment-container textarea"),
+		$commentContainerFormControls = $(".comment-form-controls, .comment-ccs");
+
+	$commentContainerTextarea.one("focus", function () {
+		$commentContainerFormControls.show();
+	});
+
+	if ($commentContainerTextarea.val() !== "") {
+		$commentContainerFormControls.show();
+	}
+
+	// Expand Request comment form when Add to conversation is clicked
+	var $showRequestCommentContainerTrigger = $(".request-container .comment-container .comment-show-container"),
+		$requestCommentFields = $(".request-container .comment-container .comment-fields"),
+		$requestCommentSubmit = $(".request-container .comment-container .request-submit-comment");
+
+	$showRequestCommentContainerTrigger.on("click", function () {
+		$showRequestCommentContainerTrigger.hide();
+		$requestCommentFields.show();
+		$requestCommentSubmit.show();
+		$commentContainerTextarea.focus();
+	});
+
+	// Mark as solved button
+	var $requestMarkAsSolvedButton = $(".request-container .mark-as-solved:not([data-disabled])"),
+		$requestMarkAsSolvedCheckbox = $(".request-container .comment-container input[type=checkbox]"),
+		$requestCommentSubmitButton = $(".request-container .comment-container input[type=submit]");
+
+	$requestMarkAsSolvedButton.on("click", function () {
+		$requestMarkAsSolvedCheckbox.attr("checked", true);
+		$requestCommentSubmitButton.prop("disabled", true);
+	});
+
+	// Change Mark as solved text according to whether comment is filled
+	var $requestCommentTextarea = $(".request-container .comment-container textarea");
+
+	$requestCommentTextarea.on("keyup", function () {
+		if ($requestCommentTextarea.val() !== "") {
+			$requestMarkAsSolvedButton.text($requestMarkAsSolvedButton.data("solve-and-submit-translation"));
+			$requestCommentSubmitButton.prop("disabled", false);
+		} else {
+			$requestMarkAsSolvedButton.text($requestMarkAsSolvedButton.data("solve-translation"));
+			$requestCommentSubmitButton.prop("disabled", true);
+		}
+	});
+
+	// Submit requests filter form in the request list page
+	$("#request-status-select, #request-organization-select").on("change", function () {
+		search();
+	});
+
+	// Submit requests filter form in the request list page
+	$("#quick-search").on("keypress", function (e) {
+		if (e.which === 13) {
+			search();
+		}
+	});
+
+	function search () {
+		window.location.search = $.param({
+			query: $("#quick-search").val(),
+			status: $("#request-status-select").val(),
+			organization_id: $("#request-organization-select").val()
+		});
+	}
+
+	$(".header .icon-menu").on("click", function (e) {
+		e.stopPropagation();
+		var menu = document.getElementById("user-nav");
+		var isExpanded = menu.getAttribute("aria-expanded") === "true";
+		menu.setAttribute("aria-expanded", !isExpanded);
+	});
+
+	if ($("#user-nav").children().length === 0) {
+		$(".header .icon-menu").hide();
+	}
+
+	$("#request-organization select").on("change", function () {
+		this.form.submit();
+	});
+
+	$(".collapsible-nav, .collapsible-sidebar").on("click", function (e) {
+		e.stopPropagation();
+		var isExpanded = this.getAttribute("aria-expanded") === "true";
+		this.setAttribute("aria-expanded", !isExpanded);
+	});
+
+	$('.pag-solicitacoes .request-breadcrumbs li a[href$="/requests"]').attr(
+		"href",
+		"https://totvscst.zendesk.com/hc/#/solicitacoes"
+	);
+	intervalId = setInterval(mataZopim, 1000);
+});
+
+function mataZopim () {
+	if (counter <= 10) {
+		$('.zopim').hide();
+		counter++;
+	} else {
+		clearInterval(intervalId);
+	}
+}
+
+//redireciona do endpoint signin para o restricted caso o usuario abra um artigo sem estar logado
+if (window.location.href.includes("signin?return_to"))
+	window.location.href = window.location.href.replace("signin", "restricted");
+
+$(document).ready(function () {
+	$.getScript(CST_CONFIGS.configs.catalog_v3.path_script);
+	$("#wait").hide();
+
+	let id_cmb_tipo_solicitacao = CST_CONFIGS.configs.catalog_v1.combo_tipo_solicitacao; //id combo tipo de solicitacao conforme ambiente
+	let id_cmb_aceite_consultoria = CST_CONFIGS.configs.catalog_v1.combo_aceite_consultoria; //id combo aceite consultoria conforme ambiente
+	let id_cmb_pais_o3 = CST_CONFIGS.configs.catalog_v1.combo_pais_o3; //id combo pais o3  conforme ambiente
+
+	hideRequestFields();
+
+	if (~window.location.href.indexOf("/requests/")) {
+		//tela de abertura de chamado
+		if ($url.includes("/new") && $url.indexOf("nolooping=ok") == -1) {
+
+			if (!HelpCenter || !HelpCenter.user || !HelpCenter.user.email) {
+				var newUrl = CST_CONFIGS.configs.formsCustomLink.default + "/hc/restricted?return_to=" + $url;
+				if (window.location.href.includes("centraldeatendimento")) {
+					let totvscst_link = CST_CONFIGS.configs.formsCustomLink[CST_CONFIGS.configs.forms.suporte_tecnico];
+					newUrl = totvscst_link + "/hc/restricted?return_to=" + $url;
+				}
+				//"&nolooping=ok" Esse é apenas um tratamento para impedir que o redirecionamento entre em looping
+				newUrl += "&nolooping=ok";
+				window.location.href = newUrl;
+			}
+
+			$("#hcform").show();
+			$("#request_subject").attr("required", true);
+			$("#request_description").attr("required", true);
+			$("#request_description").blur(function(obj){
+				acceptKeywordsRestricted($("#request_description").val());
+			});
+			let textTotvsMyPasswordP = "<p id='minha-senha-url' >Para compartilhar informações de senhas, utilize nosso aplicativo de criptografia Minha senha TOTVS: " 
+			textTotvsMyPasswordP += "<a href='https://minhasenha.totvs.com.br/home' target='_blank'>https://minhasenha.totvs.com.br/</a>";
+			$(".request_description").append(textTotvsMyPasswordP);
+
+			//Alterar a posição dos campos do formulário
+			$(".request_description").after($(".request_custom_fields_" + id_cmb_tipo_solicitacao));
+			$(".request_custom_fields_" + id_cmb_tipo_solicitacao).after(
+				$(".request_custom_fields_" + id_cmb_aceite_consultoria)
+			);
+			//$('.request_custom_fields_45984988').before($('.row'));
+			$(".request_custom_fields_" + id_cmb_pais_o3).after($("#conteudo_row"));
+			//$('.row').after($('.request_custom_fields_45984988'));
+			$(".upload-dropzone").after($("#attach-alert"));
+			$(".upload-pool").after($("#nbtn"));
+		} else {
+			if (checkDadosSessao) checkDadosSessao(null, false);
+
+			//esconde os campos Produto TOTVS - ...
+			var $produtoTotvsItems = $("dt").filter(function () {
+				return (
+					$(this)
+						.html()
+						.indexOf("Produto TOTVS") == 0
+				);
+			});
+
+			for (let i = 0; i < $produtoTotvsItems.length; i++) {
+				$($produtoTotvsItems[i]).hide();
+				$($produtoTotvsItems[i])
+					.next("dd")
+					.hide();
+			}
+		}
+
+		$(window).scrollTop(0);
+
+		//Desabilita motivo de cancelamento
+		$(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento).hide();
+		$("div.request_custom_fields_" + CST_CONFIGS.configs.fields.LGPD_ACEITE_PALAVRAS_RESTRITAS.id).hide();
+
+		$(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_modulo + " input").on("change", function (e) {
+			if ("cancelamento_contrato" == this.value) {
+				$(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento).show();
+			} else {
+				if ($("#request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento)[0]) {
+					$("#request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento)[0].value = "";
+				}
+				$(
+					".request_custom_fields_" +
+					CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento +
+					" a.nesty-input"
+				)[0].text = "-";
+				$(".request_custom_fields_" + CST_CONFIGS.configs.catalog_v2.combo_motivo_cancelamento).hide();
+			}
+		});
+	}
+
+	if ($url.includes("/categories/") || $url.includes("/sections/") || $url.includes("/articles/")) {
+		listaCategorias(function (res) {
+			var html = "";
+			for (let i = 0; i < res.length; i++) {
+				html += i == 0 ? '<li style="border-top:1px solid #bbb;">' : "<li>";
+				html += '<a href="' + res[i]["html_url"] + '">' + res[i]["name"] + "</a></li>";
+			}
+
+			if (res.length > 0) {
+				$(".painel-esquerda")
+					.find("ul")
+					.html(html);
+			}
+		});
+	}
+
+	changeFieldsCatalog();
+	setTimeout(initializeHeader, 1000);
+
+	// BOTÃO ENVIAR
+	function registraOnClickdoEnviar () {
+		$('input[name=commit]').click((evt) => {
+			try {
+				if (evt.target.form && evt.target.form.id == 'new_satisfaction_rating') return;
+
+				$('input[name=commit]').prop("disabled", true);
+				if (catalogoVone != null) catalogoVone.setCatalog();
+				if (document.URL.indexOf(`ticket_form_id=${CST_CONFIGS.configs.forms.suporte_tecnico}`) != -1) {
+					const isValido = isValidoSuporteTelefonico(true);
+					if (isValido) {
+						$(evt.target.form).submit();
+					} else {
+						$('input[name=commit]').prop("disabled", false);
+					}
+				} else if (document.URL.indexOf(`ticket_form_id=${CST_CONFIGS.configs.forms.ti}`) != -1) {
+					if (ValidacaoCampos()) {
+						if (catalogoVone) catalogoVone.sendFormTI();
+					} else {
+						$('input[name=commit]').prop("disabled", false);
+					}
+				} else {
+					$(evt.target.form).submit();
+				}
+			} catch (e) {
+				$(evt.target.form).submit();
+			}
+		});
+
+		$('#new_request').on('submit', function (e) {
+			if (window.location.href.indexOf('/requests/new') != -1) {
+				if (!ValidacaoCampos()) {
+					$('input[name=commit]').prop("disabled", false);
+					return false;
+				}
+
+				if (document.URL.indexOf(`ticket_form_id=${CST_CONFIGS.configs.forms.suporte_tecnico}`) != -1) {
+					const isValido = isValidoSuporteTelefonico(true);
+					if (!isValido) {
+						$('input[name=commit]').prop("disabled", false);
+						return false;
+					}
+				}
+
+				if (hasRestrictedWordsAndNotUsedTotvsMyPassword()) {
+					if (confirmSendWithoutTotvsMyPassword) {
+						$('#new_request').off('submit');
+						return true;
+					} else {
+						let args = {
+							message:
+							textMessageTotvsMyPassword + 
+							"<br/><br/>Deseja prosseguir com a abertura do ticket sem utilizar o aplicativo de criptografia Minha Senha TOTVS?",
+							closeOnBodyClick: false,
+							okButtonLabel: "Sim",
+							cancelButtonLabel: "Não"
+						};
+						showConfirm(args, function (resp) {
+							if (resp) {
+								confirmSendWithoutTotvsMyPassword = true;
+								setCustomFieldAcceptRestrictedWords(true);
+								setTimeout(
+									function() {$('input[name=commit]').prop("disabled", true);
+								});
+								$('#new_request').submit();
+							}
+						});
+						setTimeout(
+							function() {$('input[name=commit]').prop("disabled", false);
+						});
+						
+						return false;
+					}
+				} else {
+					$('#new_request').off('submit');
+					return true;
+				}
+			} else {
+				$('#new_request').off('submit');
+				return true;
+			}
+		});
+	}
+
+	setTimeout(function () {
+		registraOnClickdoEnviar();
+	}, 1500);
+});
+
+function isTicketAcompanhamento() {
+	return document.URL.includes("parent_id");
+}
+
+/**
+ * Valida o preenchimento do catalogo v3 para evitar a abertura de tickets abertos sem o catálogo.
+ */
+function validarCatalogoV3() {
+
+	// Quando o ticket é de acompanhamento o catálogo não é preenchido
+	if (isTicketAcompanhamento()) {
+		return;
+	}
+
+	const currentLang = getCurrentIdioma();
+	const nomeCampoMacrossegmento = {
+		"pt-br": "Macrossegmento",
+		"es": "Macrosegmento",
+		"en-us": "Macro segment"
+	};
+	
+	// Validacao para os formularios que utilizam o catalogo V3
+	if (document.URL.indexOf(`ticket_form_id=${CST_CONFIGS.configs.forms.suporte_tecnico}`) != -1
+		|| document.URL.indexOf(`ticket_form_id=${CST_CONFIGS.configs.forms.cloud}`) != -1) {
+
+		// Verifica se tem o campo do macrossegmento
+		if ($(`[data-nome="${nomeCampoMacrossegmento[currentLang]}"]`).length == 0) {
+			// Se nao tiver o campo, devolve um erro e impede a criacao do ticket
+			throw new Error("O catálogo não foi preenchido");
+		}
+	}
+}
+
+function hideRequestFields () {
+	if ($url.includes("requests")) {
+		const newCatalogFields = ["hide_in_portal", "catalog_snapshot", "form_id"]
+		newCatalogFields.forEach((catalogField) => $(`p:contains(${catalogField})`).parent().hide())
+
+		if (!$url.includes("/new")) {
+			$("dd:contains(            —)").prev().hide();
+			$("dd:contains(            —)").hide();
+			$("dt:contains('Catálogo Oficial |')").next().hide();
+			$("dt:contains('Catálogo Oficial |')").hide();
+			$("dt:contains('" + CST_CONFIGS.configs.fields.LGPD_ACEITE_PALAVRAS_RESTRITAS.label + "')").hide();
+			$.getScript(`${CATALOGPATH}scripts/zendesk/pages/requests`);
+		}
+	}
+}
+
+function changeFieldsCatalog () {
+
+	//--> Catálogo v1
+	//-------------------
+	//--> Tratamento para o formulário de Tecnologia da Informação - TIOPD-110
+	if ($url.includes(`/new?ticket_form_id=${form_ti}`) || $("#request_issue_type_select").val() == form_ti) {
+		//--> Troca a Div de conteúdo de fora do formulário para antes do agrupador de serviços
+		$("#conteudo").insertAfter(`.request_custom_fields_${CST_CONFIGS.configs.fields.AGRUPADOR_DE_SERVICOS.id}`);
+		//--> Injeta o script do catálogo V1 que contém todo o funcionamento
+		$.getScript(CST_CONFIGS.configs.catalog_v1.path_script, function () { });
+	}
+
+	//--> Catálogo v2
+	//-------------------
+	if ($url.includes(`/new?ticket_form_id=${form_cst}`)
+		|| $url.includes(`/new?ticket_form_id=${form_universidade}`)) {
+		$("head").append([
+			`<script type="text/javascript" src="${CST_CONFIGS.configs.catalog_v2.path_script_auto_contido_js}">`,
+			`<link href="${CST_CONFIGS.configs.catalog_v2.path_script_auto_contido_css}" rel="stylesheet" type="text/css">`
+		]);
+		setTimeout(function () {
+			$(".catalogov2-campo").addClass('required');
+			$("#catalogCombo-4").css('display', 'none');
+			$("#catalogCombo-5").css('display', 'none');
+			$("#catalogCombo-6").css('display', 'none');
+			$("#catalogCombo-7").css('display', 'none');
+		}, 1500);
+	}
+}
+
+function initializeHeader () {
+	var header = $("#cst-header");
+
+	// PAINEL COM INFOS DO USUARIO NO MENU SUPERIOR
+	header.find(".user-info-dropdown").click(function (e) {
+		e.stopPropagation();
+		var popup = header.find(".user-info-popup");
+		var dropdown = $(this);
+		var btnInformacoesCadastro = popup.find(".btn-user-info-alt-dados");
+		var body = $("body");
+
+		if (!popup.hasClass("visible")) {
+			closeAllDropdowns();
+			popup.fadeIn(300).addClass("visible");
+			dropdown.addClass("active");
+
+			btnInformacoesCadastro.off("click").on("click", function () {
+				close();
+			});
+			popup.off("click").on("click", function (e) {
+				e.stopPropagation();
+			});
+
+			$("body").on("click", closeAllDropdowns);
+		} else close();
+
+		function close () {
+			popup.fadeOut(300, function () {
+				popup.removeClass("visible");
+				popup.find(".user-info-popup-container").removeClass("razao-social-selector-aberto");
+			});
+			dropdown.removeClass("active");
+			body.off("click", close);
+		}
+	});
+	//MENU MEU ESPACO
+	header.find(".navbar-menu-item.drop-down").click(function (e) {
+		e.stopPropagation();
+		var menuItem = $(this);
+		var dropdown = menuItem.find(".menu-item-options");
+		if (menuItem.hasClass("expanded")) {
+			hideDropDown();
+		} else {
+			closeAllDropdowns();
+			dropdown.fadeIn("fast");
+			menuItem.addClass("expanded");
+			$("body").on("click", closeAllDropdowns);
+		}
+
+		function hideDropDown () {
+			if (compassRunning) return;
+			dropdown.fadeOut("fast");
+			menuItem.removeClass("expanded");
+			$("body").off("click", hideDropDown);
+		}
+	});
+
+	// NOTIFICACOES
+	header.find(".user-info-notificacoes").click(function (e) {
+
+
+		var notificacoesLista = $(this).find(".notificacoes-container");
+		if (notificacoesLista.hasClass("visible")) {
+			hideNotificacoesLista();
+		} else {
+			closeAllDropdowns();
+			$('body').loading(loadOptions);
+			notificacoesLista.fadeIn("fast");
+			notificacoesLista.addClass("visible");
+			e.stopPropagation();
+			$("body").on("click", hideNotificacoesLista);
+			getUserAlerts(DADOS_SESSAO.user.id, function (res) {
+				updateNotificacoes(res);
+				$("body").loading("stop");
+			})
+
+		}
+
+		function hideNotificacoesLista () {
+			notificacoesLista.fadeOut("fast");
+			notificacoesLista.removeClass("visible");
+			header.find(".user-info-notificacoes").removeClass("new-notificacoes");
+			if (haveAlerts) {
+				notificacoesLista.removeClass("new-alert");
+			}
+			$("body").off("click", hideNotificacoesLista);
+		}
+
+
+	});
+
+	// COMBO SELECAO IDIOMA
+	$("#languages-combobox").click(function (e) {
+		var comboLanguage = $(this);
+		var selector = comboLanguage.find(".items-container");
+		var items = selector.find(".combobox-item");
+		var body = $("body");
+
+		if (selector.hasClass("hidden")) {
+			closeAllDropdowns();
+			e.stopPropagation();
+			selector.removeClass("hidden");
+			items.on("click", onItemClick);
+			body.on("click", closeSelector);
+		} else closeSelector();
+
+		function closeSelector () {
+			selector.addClass("hidden");
+			body.off("click", closeSelector);
+			items.off("click", onItemClick);
+		}
+
+		function onItemClick (e) {
+			e.stopPropagation();
+			var html = $(this).html();
+			if (html) {
+				var selectedItem = comboLanguage.find(".selected-value").find(".combobox-item");
+				selectedItem.html(html);
+			}
+			closeSelector();
+		}
+	});
+
+	//botao login 'ENTRAR'
+	header.find(".user-info-login").click(function () {
+		var loginUrl = "/hc/restricted?return_to=" + window.location.href;
+		window.location.href = loginUrl;
+	});
+
+	//botao  'Quero me Cadastrar'
+	header.find("#btnRegister").click(function () {
+		$.ajax({
+			"url": SELFSERVICEPATH + "/register",
+			"type": "GET",
+			"contentType": "text/HTML",
+			"dataType": "html",
+			"success": function (response) {
+
+				let modalTemplate = '<div  class="modal" aria-labelledby="modalRegister" role="dialog" id="modalRegister" aria-hidden="true" tabindex="-1"  style="z-index: 50 !important;">';
+				modalTemplate += '<div class="modal-dialog modal-xl">'
+				modalTemplate += '<div class="modal-header">';
+				modalTemplate += '<h3 class="modal-title">Quero me cadastrar</h3>';
+				modalTemplate +=
+					'<button id="btnCloseModalRegister" type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>';
+				modalTemplate += "</div>";
+				modalTemplate += '<div class="modal-content">';
+				modalTemplate += response;
+				modalTemplate += '</div>';
+				modalTemplate += '</div>';
+				modalTemplate += '</div>';
+				$("#divModalRegister").html(modalTemplate);
+				$("#modalRegister").css('display', 'block');
+				$(document).on("click", "#btnCloseModalRegister", function () {
+					$("#modalRegister").css('display', 'none');
+					$("#divModalRegister").html('');
+					$("#divModalRegister").off();
+					$(document).off();
+				});
+
+			},
+			error: function (jqXHR, textStatus, errorThrown) {
+
+
+			}
+		});
+	});
+
+	function closeAllDropdowns () {
+		if (compassRunning) return;
+		// fecha dropdowns do menu superior
+		var header = $("#cst-header");
+		header.find(".navbar-menu-item.drop-down").removeClass("expanded");
+		header
+			.find(".navbar-menu-item.drop-down")
+			.find(".menu-item-options")
+			.fadeOut("fast");
+
+		// fecha painel de notificacoes
+		header
+			.find(".notificacoes-container")
+			.fadeOut("fast")
+			.removeClass("visible");
+
+		// fecha painel das infos do usuario
+		var popup = header.find(".user-info-popup");
+		popup.fadeOut(300, function () {
+			popup.removeClass("visible");
+			popup.find(".user-info-popup-container").removeClass("razao-social-selector-aberto");
+		});
+		header.find(".user-info-dropdown").removeClass("active");
+
+		//fecha combo de idiomas
+		$("#languages-combobox")
+			.find(".items-container")
+			.addClass("hidden");
+
+		$("body").off("click", closeAllDropdowns);
+	}
+}
+
+function listaCategorias (cb) {
+	var locale = "pt-br";
+	if (window.location.href.includes("/hc/en-us")) locale = "en-us";
+	else if (window.location.href.includes("/hc/es")) locale = "es";
+
+	$.ajax({
+		url: "https://totvscst.zendesk.com/api/v2/help_center/" + locale + "/categories.json",
+		type: "GET",
+		contentType: "application/json",
+		dataType: "json",
+		success: function (response) {
+			var categorias = [];
+			if (response && response.categories) {
+				categorias = response.categories.sort(function (a, b) {
+					return a.name > b.name ? 1 : a.name < b.name ? -1 : 0;
+				});
+			}
+			cb(categorias);
+		},
+		error: function (jqXHR, textStatus, errorThrown) {
+
+			cb([]);
+		}
+	});
+}
+
+function initializeFavoritos () {
+	function getFormCampos () {
+		var campos = $('div[class*="request_custom_fields"]');
+		var ret_campos = [];
+		for (var i = 0; i < campos.length; i++) {
+			if ($(campos[i]).css("display") != "none") ret_campos.push($(campos[i]));
+		}
+		return ret_campos;
+	}
+
+	var form_ouvidoria_id = CST_CONFIGS.configs.forms.ouvidoria;
+	//somente ouvidoria por enquanto (testando)
+	if ($url.includes("/requests/new?ticket_form_id=" + form_ouvidoria_id)) {
+		var campos = getFormCampos();
+	}
+}
+
+var sort_by = function (field, reverse, primer) {
+	var key = primer
+		? function (x) {
+			return primer(x[field]);
+		}
+		: function (x) {
+			return x[field];
+		};
+
+	reverse = !reverse ? 1 : -1;
+
+	return function (a, b) {
+		a = key(a);
+		b = key(b);
+		return reverse * ((a > b) - (b > a));
+	};
+};
+
+//####Funcao de implementacao dos Favoritos
+function initializeCatalogoV1WithFavoritos () {
+	var URL_API = CST_CONFIGS.catalogoVone;
+
+	let id_cmb_agrup_serv = CST_CONFIGS.configs.catalog_v1.combo_agrup_serv; //id combo agrupador de serviços conforme ambiente
+	let id_cmb_produto = CST_CONFIGS.configs.catalog_v1.combo_produto; //id combo produto conforme ambiente
+	let id_cmb_modulo = CST_CONFIGS.configs.catalog_v1.combo_modulo; //id combo modulo conforme ambiente
+	let id_cmb_agrup_rotina = CST_CONFIGS.configs.catalog_v1.combo_agrup_rotina; //id combo agrupador de rotina conforme ambiente
+	let id_cmb_tipo_solicitacao = CST_CONFIGS.configs.catalog_v1.combo_tipo_solicitacao; //id combo tipo de solicitacao conforme ambiente
+	let id_cmb_impacto = CST_CONFIGS.configs.catalog_v1.combo_impacto; //id combo impacto conforme ambiente
+	let id_cmb_ambiente = CST_CONFIGS.configs.catalog_v1.combo_ambiente; //id combo ambiente Onda 3 Oficial conforme ambiente
+	let id_cmb_produtos_cloud = CST_CONFIGS.configs.catalog_v1.combo_produtos_cloud; //id combo produtos cloud conforme ambiente
+	let id_cmb_ambientes_cloud = CST_CONFIGS.configs.catalog_v1.combo_ambientes_cloud; //id combo ambientes cloud conforme ambiente
+	let id_cmb_agrup_rotinas_cloud = CST_CONFIGS.configs.catalog_v1.combo_agrup_rotinas_cloud; //id combo agrupador de rotinas cloud conforme ambiente
+	let id_cmb_tipo_ticket_ouvidoria = CST_CONFIGS.configs.catalog_v1.combo_tipo_ticket_ouvidoria; //id combo ouvidoria tipo de ticket conforme ambiente
+	let id_cmb_produtos_ouvidoria = CST_CONFIGS.configs.catalog_v1.combo_produtos_ouvidoria; //id combo produtos ouvidoria conforme ambiente
+	let id_cmb_catalogo_sacfly01 = CST_CONFIGS.configs.catalog_v1.combo_catalogo_sacfly01; //id combo catalogo sacfly01 conforme ambiente
+	let id_cmb_processo = CST_CONFIGS.configs.catalog_v1.combo_processo; //id combo processo conforme ambiente
+	let id_cmb_country = CST_CONFIGS.configs.catalog_v1.combo_pais_onda3;
+
+	eval("flag_cmb" + id_cmb_agrup_serv + " = 0"); //agrupador servicos
+	eval("flag_cmb" + id_cmb_produto + " = 0"); //produto
+	eval("flag_cmb" + id_cmb_modulo + " = 0"); //modulo
+	eval("flag_cmb" + id_cmb_agrup_rotina + " = 0"); //modulo
+
+	if ($url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.ouvidoria) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.sac_fly01) ||
+		$url.includes(`/new?ticket_form_id=${form_ti}`)
+	) {
+		var last_id = 0;
+
+		var solicitacao_string = $("#request_custom_fields_" + id_cmb_tipo_solicitacao).attr("data-tagger");
+		var onda3_string = $("#request_custom_fields_" + id_cmb_impacto).attr("data-tagger");
+		var ambiente_string = $("#request_custom_fields_" + id_cmb_ambiente).attr("data-tagger");
+		var produtosCloud_string = $("#request_custom_fields_" + id_cmb_produtos_cloud).attr("data-tagger");
+		var ambienteCloud_string = $("#request_custom_fields_" + id_cmb_ambientes_cloud).attr("data-tagger");
+		var motivoOuvidoria_string = $("#request_custom_fields_" + id_cmb_tipo_ticket_ouvidoria).attr("data-tagger");
+		var produtoOuvidoria2_string = $("#request_custom_fields_" + id_cmb_produtos_ouvidoria).attr("data-tagger");
+		var servicoSacFly_string = $("#request_custom_fields_" + id_cmb_catalogo_sacfly01).attr("data-tagger");
+		var agrupadorOuvidoria_string = $("#request_custom_fields_" + id_cmb_agrup_serv).attr("data-tagger");
+		var produtoOuvidoria_string = $("#request_custom_fields_" + id_cmb_produto).attr("data-tagger");
+		var moduloOuvidoria_string = $("#request_custom_fields_" + id_cmb_modulo).attr("data-tagger");
+		var processoOuvidoria_string = $("#request_custom_fields_" + id_cmb_agrup_rotina).attr("data-tagger");
+
+		function getByID (email, last_ID, cb) {
+			var ajaxObj = {
+				user_email: email,
+				last_id: last_ID
+			};
+			$.ajax({
+				url: URL_API + "/api/favoritos/getByID/",
+				type: "GET",
+				dataType: "json",
+				data: ajaxObj,
+				Accept: "application/json",
+				success: function (response) {
+					cb(response);
+				},
+				error: function (jqXHR, textStatus, errorThrown) {
+
+				}
+			});
+		}
+
+		function insertData (email, last_id, arrayObjs, cb) {
+			if (arrayObjs.length == 0) return cb("Não há favoritos para serem inseridos");
+
+			var addObjs = [];
+
+			for (var i = 0; i < arrayObjs.length; i++) {
+				addObjs.push(arrayObjs[i]);
+				addObjs[i].user_email = email;
+				addObjs[i].last_ID = last_id;
+			}
+
+			addObjs = JSON.stringify(addObjs);
+
+			$.ajax({
+				url: URL_API + "/api/favoritos/insert/",
+				type: "POST",
+				dataType: "json",
+				data: addObjs,
+				Accept: "application/json",
+				contentType: "application/json",
+				success: function (response) {
+
+					return cb(response);
+				},
+				error: function (jqXHR, textStatus, errorThrown) {
+
+				}
+			});
+		}
+
+		function removeData (email, last_id, arrayObjs, cb) {
+			if (arrayObjs.length == 0) return cb("Não há favoritos para serem removidos");
+
+			var rmvObjs = [];
+			for (var i = 0; i < arrayObjs.length; i++) {
+				rmvObjs.push(arrayObjs[i]);
+				rmvObjs[i].user_email = email;
+				rmvObjs[i].last_ID = last_id;
+			}
+
+			rmvObjs = JSON.stringify(rmvObjs);
+			var url_delete_favoritos;
+			if (last_id < 0) url_delete_favoritos = URL_API + "/api/favoritos/delete2/";
+			else url_delete_favoritos = URL_API + "/api/favoritos/delete/";
+
+			$.ajax({
+				url: url_delete_favoritos,
+				type: "DELETE",
+				dataType: "json",
+				data: rmvObjs,
+				Accept: "application/json",
+				contentType: "application/json",
+				success: function (response) {
+
+					return cb(response);
+				},
+				error: function (jqXHR, textStatus, errorThrown) {
+
+				}
+			});
+		}
+
+		$(".close").click(function () {
+			fechaModal();
+		});
+
+		var modal = document.getElementById("myModal2");
+		window.onclick = function (event) {
+			if (event.target == modal) {
+				fechaModal();
+			}
+		};
+
+		function fechaModal () {
+			$("#myModal2").css("display", "none");
+			$("#favoritos").html("");
+			$("#catalogo").html("");
+			$(".options").removeClass("selectedDiv");
+			$(".options").addClass("selectableDiv");
+			$("#addFavorite").off();
+			$("#rmvFavorite").off();
+			$("#salvarFavoritos").off();
+			$(document).off();
+		}
+
+		function createHtmlElement (id, jsonString, titulo, setId) {
+			var new_html_ =
+				'<label for="request_custom_fields_' +
+				id +
+				'">' +
+				titulo +
+				'</label><select name="request[custom_fields][' +
+				id +
+				']" id="request_custom_fields_' +
+				id +
+				'" autocomplete="off" style="max-width:90%;"></select>';
+			new_html_ +=
+				'<div class="pointerDiv" style="width: 37px;display:inline-block;height: 35px;background: #DDDDDD;align-items: center;padding: 5px;display: inline-flex;border-radius: 4px;margin-left: 7px;/* align-items: center; */float: right;" id="favorito' +
+				id +
+				'" title="Gerenciar Opções" style="display:inline-block"><img class="showModal" id="modal' +
+				id +
+				'" src="https://theme.zdassets.com/theme_assets/888110/8b88cf393cab590b8aa65da6e27efd863c9a871b.svg" width="15" height="15" style="margin: 0 auto;"></div>';
+			$(".request_custom_fields_" + id).html("");
+			$(".request_custom_fields_" + id).html(new_html_);
+
+			var jsonObject = jsonString ? JSON.parse(jsonString) : [];
+
+			for (var i = 0; i < jsonObject.length; i++) {
+				jsonObject[i].tag_zendesk = jsonObject[i].value;
+				jsonObject[i].valor_campo = jsonObject[i].label;
+				if (setId && jsonObject[i].value != undefined) {
+					jsonObject[i].id = jsonObject[i].value.split("_")[jsonObject[i].value.split("_").length - 1];
+				} else {
+					jsonObject[i].id = 0;
+				}
+				delete jsonObject.value;
+				delete jsonObject.label;
+			}
+
+			return jsonObject;
+		}
+
+		function favoritosTipo (id, index, tipoJson) {
+			var tipo_template = '<option value="{{value}}">{{label}}</option>';
+			var tipo_option_html = "";
+
+			getByID(HelpCenter.user.email, index, function (response) {
+				if (response.length > 0) {
+					var html_aux_tipo = tipo_template;
+					html_aux_tipo = html_aux_tipo.replace("{{value}}", " ");
+					html_aux_tipo = html_aux_tipo.replace("{{label}}", "-");
+					tipo_option_html += html_aux_tipo;
+				} else {
+					var dados_tipo = tipoJson;
+					for (var i = 0; i < dados_tipo.length; i++) {
+						var html_aux_tipo_for = tipo_template;
+						html_aux_tipo_for = html_aux_tipo_for.replace("{{value}}", dados_tipo[i].tag_zendesk);
+						html_aux_tipo_for = html_aux_tipo_for.replace("{{label}}", dados_tipo[i].valor_campo);
+						tipo_option_html += html_aux_tipo_for;
+					}
+				}
+				$("#request_custom_fields_" + id).html("");
+				$("#request_custom_fields_" + id).html(tipo_option_html);
+			});
+		}
+
+		function alteraFavorito (text, param) {
+			var optionTemplate = '<div class="options selectableDiv" style="-webkit-user-select: initial;">';
+			optionTemplate += text;
+			optionTemplate += "</div>";
+
+			if (param == "favorito") {
+				$("#favoritos").append(optionTemplate);
+			} else if (param == "catalogo") {
+				$("#catalogo").append(optionTemplate);
+			}
+		}
+
+		var solicitacao_json = createHtmlElement(
+			id_cmb_tipo_solicitacao,
+			solicitacao_string,
+			"Tipo da Solicitação",
+			false
+		);
+		var onda3_json = createHtmlElement(id_cmb_impacto, onda3_string, "Impacto", false);
+		var ambiente_json = createHtmlElement(id_cmb_ambiente, ambiente_string, "Ambiente", false);
+
+		// CLOUD
+		var produtosCloud_json = createHtmlElement(id_cmb_produtos_cloud, produtosCloud_string, "Produto", false);
+		var ambienteCloud_json = createHtmlElement(id_cmb_ambientes_cloud, ambienteCloud_string, "Ambiente", false);
+		var agrupadorCloud_json = createHtmlElement(
+			id_cmb_agrup_rotinas_cloud,
+			ambienteCloud_string,
+			"Agrupador de Rotinas",
+			false
+		);
+
+		//Ouvidoria
+		var motivoOuvidoria_json = createHtmlElement(
+			id_cmb_tipo_ticket_ouvidoria,
+			motivoOuvidoria_string,
+			"Motivo",
+			false
+		);
+		var produtoOuvidoria2_json = createHtmlElement(
+			id_cmb_produtos_ouvidoria,
+			produtoOuvidoria2_string,
+			"Produto",
+			false
+		);
+
+		//SacFly
+		var servicoSacFly_json = createHtmlElement(
+			id_cmb_catalogo_sacfly01,
+			servicoSacFly_string,
+			"Selecione o serviço",
+			false
+		);
+
+		//===alteração para campo Tipo de solicitação===//
+		favoritosTipo(id_cmb_tipo_solicitacao, -1, solicitacao_json);
+		//===alteração para campo Onda 3 oficial===//
+		favoritosTipo(id_cmb_impacto, -3, onda3_json);
+		//===alteração para campo ambiente===//
+		favoritosTipo(id_cmb_ambiente, -4, ambiente_json);
+
+		// cloud
+		favoritosTipo(id_cmb_produtos_cloud, -9, produtosCloud_json);
+		favoritosTipo(id_cmb_ambientes_cloud, -10, ambienteCloud_json);
+		favoritosTipo(id_cmb_agrup_rotinas_cloud, -11, agrupadorCloud_json);
+
+		//Ouvidoria
+		favoritosTipo(id_cmb_tipo_ticket_ouvidoria, -12, motivoOuvidoria_json);
+		favoritosTipo(id_cmb_produtos_ouvidoria, -13, produtoOuvidoria2_json);
+
+		//ServicoSacFly
+		favoritosTipo(id_cmb_catalogo_sacfly01, -14, servicoSacFly_json);
+
+		//===verifica flag para primeiro favorito do catálogo===
+		if (localStorage["#zendesk_aktie_favoritosInit"] == "1") {
+
+			eval("flag_cmb" + id_cmb_agrup_serv + " = 1");
+		} else if (localStorage["#zendesk_aktie_favoritosInit"] == "0") {
+
+			eval("flag_cmb" + id_cmb_agrup_serv + " = 0");
+		} else {
+			//consulta no banco
+			getByID(HelpCenter.user.email, 0, function (response) {
+				if (response.length > 0) {
+					eval("flag_cmb" + id_cmb_agrup_serv + " = 1");
+					localStorage["#zendesk_aktie_favoritosInit"] = "1";
+				} else {
+					eval("flag_cmb" + id_cmb_agrup_serv + " = 0");
+					localStorage["#zendesk_aktie_favoritosInit"] = "0";
+				}
+
+			});
+		}
+
+		function modalFavoritos (dados, flag, combo_ID, ref_ID) {
+			//===organiza opções para exibição em modal===
+			var catalogo_response = dados;
+			var catalogo = [];
+			for (var i = 0; i < catalogo_response.length; i++) {
+				if (catalogo_response[i].valor_campo != "-") catalogo.push(catalogo_response[i].valor_campo);
+			}
+			//======
+
+			//===busca favoritos para exibir no modal===
+			getByID(HelpCenter.user.email, ref_ID, function (response) {
+				var rmvArray = [];
+				var addArray = [];
+				var favoritos_names = [];
+				var favoritos = response;
+				for (let i = 0; i < favoritos.length; i++) {
+					favoritos_names.push(favoritos[i].valor_campo);
+				}
+
+				//===confere favoritos e monta opções do modal===
+				var favoritos_aux = [];
+				for (let i = 0; i < favoritos_names.length; i++) {
+					if (catalogo.includes(favoritos[i])) {
+						alteraFavorito(favoritos_names[i], "favorito");
+						favoritos_aux.push(favoritos_names[i]);
+					}
+				}
+				for (let i = 0; i < catalogo.length; i++) {
+					if (favoritos_aux.indexOf(catalogo[i]) < 0) alteraFavorito(catalogo[i], "catalogo");
+				}
+				//======
+
+				//exibe modal
+				$("#myModal2").css("display", "block");
+				$("#wait").hide();
+
+				//===trata seleção da opção===
+				$(document).on("click", ".options", function () {
+					if ($(this).hasClass("selectableDiv")) {
+						$(this).removeClass("selectableDiv");
+						$(this).addClass("selectedDiv");
+					} else {
+						$(this).removeClass("selectedDiv");
+						$(this).addClass("selectableDiv");
+					}
+				});
+				//======
+
+				//===adiciona favorito na tela do modal===
+				$("#addFavorite").click(function () {
+					$("#catalogo")
+						.children()
+						.each(function () {
+							if ($(this).hasClass("selectedDiv")) {
+								alteraFavorito($(this).text(), "favorito");
+								favoritos_aux.push($(this).text());
+								if (addArray.indexOf($(this).text()) < 0 && rmvArray.indexOf($(this).text()) < 0) {
+									addArray.push($(this).text());
+								}
+								var index = rmvArray.indexOf($(this).text());
+								if (index > -1) {
+									rmvArray.splice(index, 1);
+								}
+								$(this).remove();
+							}
+						});
+				});
+				//======
+
+				//===remove favorito na tela do modal===
+				$("#rmvFavorite").click(function () {
+					$("#favoritos")
+						.children()
+						.each(function () {
+							if ($(this).hasClass("selectedDiv")) {
+								alteraFavorito($(this).text(), "catalogo");
+								var index = favoritos_aux.indexOf($(this).text());
+								if (index > -1) favoritos_aux.splice(index, 1);
+								if (rmvArray.indexOf($(this).text()) < 0 && addArray.indexOf($(this).text()) < 0) {
+
+									rmvArray.push($(this).text());
+								}
+								index = addArray.indexOf($(this).text());
+								if (index > -1) {
+
+									addArray.splice(index, 1);
+								}
+								$(this).remove();
+							}
+						});
+				});
+				//======
+
+				//===salva novas configurações de favoritos===
+				$("#salvarFavoritos").click(function () {
+					if (favoritos_aux.length == 0) {
+						eval("flag_cmb" + combo_ID.substring(5, combo_ID.length).split("_")[0] + "= 0");
+
+						if (combo_ID.substring(5, combo_ID.length).split("_")[0] == id_cmb_agrup_serv)
+							localStorage["#zendesk_aktie_favoritosInit"] = "0";
+					} else {
+						eval("flag_cmb" + combo_ID.substring(5, combo_ID.length).split("_")[0] + "= 1");
+
+						if (combo_ID.substring(5, combo_ID.length).split("_")[0] == id_cmb_agrup_serv)
+							localStorage["#zendesk_aktie_favoritosInit"] = "1";
+					}
+					var addObjs = [];
+					var rmvObjs = [];
+
+					for (var i = 0; i < catalogo_response.length; i++) {
+						if (addArray.includes(catalogo_response[i].valor_campo)) addObjs.push(catalogo_response[i]);
+						else if (rmvArray.includes(catalogo_response[i].valor_campo))
+							rmvObjs.push(catalogo_response[i]);
+					}
+
+					insertData(HelpCenter.user.email, ref_ID, addObjs, function (responseInsert) {
+						removeData(HelpCenter.user.email, ref_ID, rmvObjs, function (responseRemove) {
+							//===atualiza html dos campos zendesk===
+							switch (ref_ID) {
+								case -1:
+									favoritosTipo(id_cmb_tipo_solicitacao, -1, solicitacao_json);
+									break;
+								// case -2:
+								//   favoritosTipo('73840427', -2);
+								//   break;
+								case -3:
+									favoritosTipo(id_cmb_impacto, -3, onda3_json);
+									break;
+								case -4:
+									favoritosTipo(id_cmb_ambiente, -4, ambiente_json);
+									break;
+								case -5:
+									favoritosTipo(id_cmb_agrup_serv, -5, agrupadorOuvidoria_json);
+									break;
+								case -6:
+									favoritosTipo(id_cmb_produto, -6, produtoOuvidoria_json);
+									break;
+								case -7:
+									favoritosTipo(id_cmb_modulo, -7, moduloOuvidoria_json);
+									break;
+								case -8:
+									favoritosTipo(id_cmb_agrup_rotina, -8, processoOuvidoria_json);
+									break;
+								case -9:
+									favoritosTipo(id_cmb_produtos_cloud, -9, produtosCloud_json);
+									break;
+								case -10:
+									favoritosTipo(id_cmb_ambientes_cloud, -10, ambienteCloud_json);
+									break;
+								case -11:
+									favoritosTipo(id_cmb_agrup_rotinas_cloud, -11, agrupadorCloud_json);
+									break;
+								case -12:
+									favoritosTipo(id_cmb_tipo_ticket_ouvidoria, -12, motivoOuvidoria_json);
+									break;
+								case -13:
+									favoritosTipo(id_cmb_produtos_ouvidoria, -13, produtoOuvidoria2_json);
+									break;
+								case -14:
+									favoritosTipo(id_cmb_catalogo_sacfly01, -14, servicoSacFly_json);
+									break;
+							}
+						});
+					});
+					fechaModal();
+				});
+			});
+		}
+
+		setTimeout(function () {
+			$(".showModal").click(function () {
+				var combo_ID = this.id;
+				var combos_zendesk = [
+					"modal" + id_cmb_tipo_solicitacao,
+					"modal" + id_cmb_country,
+					"modal" + id_cmb_impacto,
+					"modal" + id_cmb_ambiente,
+					"modal" + id_cmb_agrup_serv + "_ouvidoria",
+					"modal" + id_cmb_produto + "_ouvidoria",
+					"modal" + id_cmb_modulo + "_ouvidoria",
+					"modal" + id_cmb_agrup_rotina + "_ouvidoria",
+					"modal" + id_cmb_produtos_cloud,
+					"modal" + id_cmb_ambientes_cloud,
+					"modal" + id_cmb_agrup_rotinas_cloud,
+					"modal" + id_cmb_tipo_ticket_ouvidoria,
+					"modal" + id_cmb_produtos_ouvidoria,
+					"modal" + id_cmb_catalogo_sacfly01
+				];
+
+				if (combos_zendesk.includes(combo_ID)) {
+					switch (this.id) {
+						case "modal" + id_cmb_tipo_solicitacao:
+							modalFavoritos(solicitacao_json, "combo_catalogo", combo_ID, -1);
+							break;
+						case "modal" + id_cmb_impacto:
+							modalFavoritos(onda3_json, "combo_catalogo", combo_ID, -3);
+							break;
+						case "modal" + id_cmb_ambiente:
+
+							modalFavoritos(ambiente_json, "combo_catalogo", combo_ID, -4);
+							break;
+						case "modal" + id_cmb_agrup_serv + "_ouvidoria":
+
+							modalFavoritos(agrupadorOuvidoria_json, "combo_catalogo", combo_ID, -5);
+							break;
+						case "modal" + id_cmb_produto + "_ouvidoria":
+
+							modalFavoritos(produtoOuvidoria_json, "combo_catalogo", combo_ID, -6);
+							break;
+						case "modal" + id_cmb_modulo + "_ouvidoria":
+
+							modalFavoritos(moduloOuvidoria_json, "combo_catalogo", combo_ID, -7);
+							break;
+						case "modal" + id_cmb_agrup_rotina + "_ouvidoria":
+
+							modalFavoritos(processoOuvidoria_json, "combo_catalogo", combo_ID, -8);
+							break;
+						case "modal" + id_cmb_produtos_cloud:
+							modalFavoritos(produtosCloud_json, "combo_catalogo", combo_ID, -9);
+							break;
+						case "modal" + id_cmb_ambientes_cloud:
+							modalFavoritos(ambienteCloud_json, "combo_catalogo", combo_ID, -10);
+							break;
+						case "modal" + id_cmb_agrup_rotinas_cloud:
+							modalFavoritos(agrupadorCloud_json, "combo_catalogo", combo_ID, -11);
+							break;
+						case "modal" + id_cmb_tipo_ticket_ouvidoria:
+							modalFavoritos(motivoOuvidoria_json, "combo_catalogo", combo_ID, -12);
+							break;
+						case "modal" + id_cmb_produtos_ouvidoria:
+							modalFavoritos(produtoOuvidoria2_json, "combo_catalogo", combo_ID, -13);
+							break;
+						case "modal" + id_cmb_catalogo_sacfly01:
+							modalFavoritos(servicoSacFly_json, "combo_catalogo", combo_ID, -14);
+							break;
+					}
+					return;
+				}
+			});
+		}, 2000);
+
+		var Campos = [];
+		var selecionados = [];
+		var nomesElementosCombo = [];
+
+		function HabilitaAutoComplete (index) {
+			var nomeElementoCombo = ".autoComplete" + index;
+
+			// var requestAtual
+			var identificadorCombo;
+			$(nomeElementoCombo).select2({
+				theme: "bootstrap",
+				ajax: {
+					url: function (params) {
+						if (eval("flag_" + $(this)[0].id)) {
+							return URL_API + "/api/favoritos/getByID/";
+						} else {
+							return URL_API + "/api/itenscampos/filhos/";
+						}
+					},
+					dataType: "json",
+					width: "100%",
+					allowClear: true,
+					data: function (params) {
+						identificadorCombo = $(this)[0].id;
+						var parametros;
+
+						if (eval("flag_" + $(this)[0].id)) {
+							switch ($(this)[0].id) {
+								case "cmb" + id_cmb_agrup_serv:
+									last_id = -5;
+									break;
+								case "cmb" + id_cmb_produto:
+									if ($("#cmb" + id_cmb_agrup_serv).val() != null) {
+										last_id = -6;
+									}
+									break;
+								case "cmb" + id_cmb_modulo:
+									if ($("#cmb" + id_cmb_produto).val() != null) {
+										last_id = -7;
+									}
+									break;
+								case "cmb" + id_cmb_processo:
+									if ($("#cmb" + id_cmb_modulo).val() != null) {
+										last_id = -8;
+									}
+									break;
+							}
+							parametros = {
+								user_email: HelpCenter.user.email,
+								last_id: last_id
+							};
+						} else {
+							var comboAtualElem = $(this);
+							var comboProximoElem = encontraProximoCombo(comboAtualElem);
+
+							montaCombosSelecionadas(comboAtualElem, comboProximoElem);
+
+							parametros = {
+								dadosCombo: selecionados,
+								valorAutocomplete: params.term
+							};
+
+							if (!parametros.valorAutocomplete) {
+								parametros.valorAutocomplete = "%";
+							}
+						}
+
+						return parametros;
+					},
+
+					processResults: function (resp) {
+						var data1 = resp.filter(function (elm) {
+							if (elm.id == 2402397) return false; // produção spoc
+							return true;
+						});
+
+						var data = data1.sort(
+							sort_by("valor_campo", false, function (a) {
+								return a.toUpperCase();
+							})
+						);
+
+						identificadorCombo = $(this.$element).attr("id");
+						if (identificadorCombo == "cmb" + id_cmb_agrup_serv) {
+							for (var i = 0; i < data.length; i++) {
+								var aux;
+								if (data[i].valor_campo == "Software") {
+									aux = data[0];
+									data[0] = data[i];
+									data[i] = aux;
+								} else if (data[i].valor_campo == "Fluig") {
+									aux = data[1];
+									data[1] = data[i];
+									data[i] = aux;
+								} else if (data[i].valor_campo == "Serviços") {
+									aux = data[2];
+									data[2] = data[i];
+									data[i] = aux;
+								}
+							}
+						}
+						//======
+
+						return {
+							results: $.map(data, function (item) {
+								var id_tag_zendesk = item.id + "|" + item.tag_zendesk;
+								return {
+									text: item.valor_campo,
+									id: id_tag_zendesk
+								};
+							})
+						};
+					},
+					cache: true
+				}
+			});
+
+			$(nomeElementoCombo).on("change", function (elem) {
+				var comboKey = this.id;
+
+				if ($("#" + this.id).val() != undefined) {
+					switch (comboKey) {
+						case "cmb" + id_cmb_agrup_serv:
+							last_id = -6;
+							break;
+						case "cmb" + id_cmb_produto:
+							last_id = -7;
+							break;
+						case "cmb" + id_cmb_modulo:
+							last_id = -8;
+							break;
+					}
+
+					getByID(HelpCenter.user.email, last_id, function (response) {
+						switch (comboKey) {
+							case "cmb" + id_cmb_agrup_serv:
+
+								if (response.length > 0) {
+									eval("flag_cmb" + id_cmb_produto + " = 1");
+
+								} else {
+									eval("flag_cmb" + id_cmb_produto + " = 0");
+
+								}
+								break;
+							case "cmb" + id_cmb_produto:
+								if (response.length > 0) {
+									eval("flag_cmb" + id_cmb_modulo + " = 1");
+
+								} else {
+									eval("flag_cmb" + id_cmb_modulo + " = 0");
+
+								}
+								break;
+							case "cmb" + id_cmb_modulo:
+								if (response.length > 0) {
+									eval("flag_cmb" + id_cmb_agrup_rotina + " = 1");
+
+								} else {
+									eval("flag_cmb" + id_cmb_agrup_rotina + " = 0");
+
+								}
+								break;
+						}
+					});
+				}
+				var comboAtualElem = $(elem);
+				if (
+					elem.currentTarget.classList["0"] ===
+					nomesElementosCombo[nomesElementosCombo.length - 1].replace(".", "")
+				) {
+					return;
+				}
+				// Encontra proximo combo (comboProximoElem)
+				var comboProximoElem = encontraProximoCombo(comboAtualElem);
+
+				// Habilita proximo combo se nao houver valor nele
+				if (comboProximoElem && !comboProximoElem.val()) {
+					comboProximoElem.prop("disabled", false);
+					$(
+						"#favorito" +
+						$(comboProximoElem)
+							.attr("id")
+							.replace(/^\D+/g, "")
+					).css("display", "inline-block");
+					// Desabilita todos os demais se houver valor no proximo
+				} else {
+					var removeTodosProximos;
+					var comboAtualOptionsElem;
+					var classNameAtualElem = elem.currentTarget.classList["0"];
+
+					$.each(nomesElementosCombo, function (index, item) {
+						var itemAtualElem = $(item);
+						comboAtualOptionsElem = $(item + " option");
+
+						if (removeTodosProximos) {
+							comboAtualOptionsElem.remove();
+							itemAtualElem.prop("disabled", true);
+							$(itemAtualElem).css("display", "none");
+							if (comboProximoElem.selector === item) {
+								itemAtualElem.prop("disabled", false);
+								$(itemAtualElem).css("display", "inline-block");
+							}
+						}
+						var patternClass = new RegExp(item.replace(".", ""));
+						if (patternClass.test(classNameAtualElem)) {
+							removeTodosProximos = true;
+						}
+					});
+				}
+
+				if (comboProximoElem) {
+					comboProximoElem.prop("disabled", false);
+					$(
+						"#favorito" +
+						$(comboProximoElem)
+							.attr("id")
+							.replace(/^\D+/g, "")
+					).css("display", "inline-block");
+					$(comboProximoElem).select2("open");
+				}
+			});
+
+			$(nomeElementoCombo).on("select2:opening", function (event) { });
+
+			nomesElementosCombo.push(nomeElementoCombo);
+		}
+
+		function montaCombosSelecionadas (comboAtualElem, comboProximoElem) {
+			geraMarca();
+
+			Campos.forEach(function (item, index) {
+				if (item.interno === "1") return;
+
+				if (item.descricao === "Marca") return;
+
+				var cmbElemento = $("#cmb" + item.id_zendesk);
+				var vlCampoSplitado = cmbElemento.val() ? cmbElemento.val().split("|") : null;
+
+				var novo = {
+					nomeCombo: cmbElemento.data("descricao"),
+					idValorCampo: vlCampoSplitado ? vlCampoSplitado[0] : null,
+					formulario: "0"
+				};
+
+				selecionados.push(novo);
+			});
+
+			if (comboAtualElem && comboAtualElem.val()) {
+				var isDesabilitaRestantes = false;
+				$.each(nomesElementosCombo, function (index, item) {
+					var classNameAtual = comboAtualElem[0].className;
+					var patternClassName = new RegExp(item.replace(".", ""));
+
+					// Desabilita atual e restante
+					if (patternClassName.test(classNameAtual) || isDesabilitaRestantes) {
+						selecionados[index + 1].idValorCampo = null;
+						isDesabilitaRestantes = true;
+					}
+				});
+			}
+		}
+
+		function geraMarca () {
+			selecionados = [];
+
+			var campoMarca = {
+				nomeCombo: "Marca",
+				idValorCampo: CST_CONFIGS.configs.brands_id.totvs,
+				formulario: "0"
+			};
+			selecionados.push(campoMarca);
+		}
+
+		function encontraProximoCombo (comboAtualElem) {
+			var comboProximoElem;
+			var breakIteracao;
+
+			$.each(nomesElementosCombo, function (index, item) {
+				if (breakIteracao) {
+					comboProximoElem = $(item);
+					return false;
+				}
+
+				var patternClass = new RegExp(item.replace(".", ""));
+
+				var className;
+				if (comboAtualElem[0].target) {
+					className = comboAtualElem[0].target.className;
+				} else {
+					className = comboAtualElem[0].className;
+				}
+
+				if (patternClass.test(className)) {
+					breakIteracao = true;
+				}
+			});
+			return comboProximoElem;
+		}
+
+		// Apenas este form precisa criar os novos combos
+		if ($url.includes(`/new?ticket_form_id=${form_ti}`)) {
+
+			$.get(URL_API + "/api/campos", function (campos) {
+				criaCombos(campos, "conteudo");
+				Campos = campos;
+
+				// Escondendo campos zendesk
+				$.each(campos, function (index, campo) {
+					$(".request_custom_fields_" + campo.id_zendesk).hide();
+				});
+				$("#hcform").show();
+				$("#wait").hide();
+
+				// Traduzindo o catálogo
+				var conturl = document.URL;
+				if (conturl.includes("/hc/es/")) {
+					$("#tit6").html("País");
+					$("#tit7").html("Agrupador de Servicios");
+					$("#tit13").html("Producto");
+					$("#tit14").html("Módulo");
+					$("#tit15").html("Agrupador de rutina");
+				} else if (conturl.includes("/hc/en-us/")) {
+					$("#tit6").html("Country");
+					$("#tit7").html("Services Grouping");
+					$("#tit13").html("Product");
+					$("#tit14").html("Module");
+					$("#tit15").html("Routine Grouping");
+				}
+			});
+		}
+
+		function criaCombos (campos, idDiv) {
+			var template = '<div class="aktnCampos" style="display: flex;align-items: center;">';
+			template += '<p style="width:90%"> ';
+			template += '		<b> <span  style="font-weight: bold; margin-bottom: 5px;" id="tit{idCampo}">{descricaoTitulo}</span>';
+			template += '	 	<span style="color: #f00;margin-left: 2px;">*</span></b>';
+			template += "		</br>";
+			template += '    <select style="width:100%" id="cmb{idZendesk}" class="{autoComplete}" data-idcampo="{idCampo}" tabindex="0" data-idzendesk="{idZendesk}" data-descricao="{descricao}">';
+			template += "		</select>";
+			template += '<div class="pointerDiv" id="favorito{idZendesk}" title="Gerenciar Opções" style="display:inline-block;width: 37px;display:inline-block;height: 35px;background: #DDDDDD;align-items: center;padding: 5px;display: inline-flex;border-radius: 4px;margin-left: 7px;/* align-items: center; */float: right;margin-left: 28px;margin-top: 11px;"><img class="showModal" style="margin: 0 auto;" id="modal{idZendesk}_ouvidoria" src="https://theme.zdassets.com/theme_assets/888110/8b88cf393cab590b8aa65da6e27efd863c9a871b.svg" width="15" height="15"></div>';
+			template += " </p>";
+			template += "</div>";
+
+			var html = "";
+			$.each(campos, function (index, data) {
+				if (data.interno === "1") return;
+				var element = template;
+				element = element.replace("{descricaoTitulo}", data.descricao);
+				element = element.replace("{idCampo}", data.id);
+				// element = element.replace('{idCampo}', data.id)
+				element = element.replace("{idCampo}", data.id);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{autoComplete}", "autoComplete" + index);
+				element = element.replace("{descricao}", data.descricao);
+				html += element;
+			});
+
+			$("#" + idDiv).html(html);
+
+			$.each(campos, function (index, data) {
+				if (data.interno === "1") return;
+				HabilitaAutoComplete(index);
+			});
+
+			desabilitaCombos(campos);
+
+			//SETA BRASIL COMO PAIS E ESCONDE COMBO PAIS
+			let id_cmb_country = CST_CONFIGS.configs.catalog_v1.combo_pais_onda3;
+			let tag_country_br = CST_CONFIGS.configs.catalog_v1.pais_brasil.tag;
+			let tag_agrup_serv_cloud = CST_CONFIGS.configs.catalog_v1.agrup_serv_cloud.tag;
+			let tag_produto_virtual_age = CST_CONFIGS.configs.catalog_v1.produto_virtual_age.tag;
+			let tag_produto_bemacash_vest = CST_CONFIGS.configs.catalog_v1.produto_bemacash_vest.tag;
+			let tag_produto_cmnet_reservas = CST_CONFIGS.configs.catalog_v1.produto_cmnet_reservas.tag;
+			let tag_produto_hotal_full = CST_CONFIGS.configs.catalog_v1.produto_hotal_full.tag;
+			let tag_produto_hotel_full = CST_CONFIGS.configs.catalog_v1.produto_hotel_full.tag;
+			let tag_produto_hotal_special = CST_CONFIGS.configs.catalog_v1.produto_hotal_special.tag;
+			let id_txt_num_empresa_virtual_age = CST_CONFIGS.configs.catalog_v1.txt_num_empresa_virtual_age;
+			let id_txt_versao_cmnet = CST_CONFIGS.configs.catalog_v1.txt_versao_cmnet;
+			let id_cmb_versao = CST_CONFIGS.configs.catalog_v1.combo_versao;
+
+			$("#cmb" + id_cmb_country).append('<option value="' + tag_country_br + '">Brasil</option>');
+			$("#cmb" + id_cmb_country).select2("val", tag_country_br);
+			$("#cmb" + id_cmb_country).select2();
+			$("#cmb" + id_cmb_country)
+				.val(tag_country_br)
+				.trigger("change");
+			$("#cmb" + id_cmb_country)
+				.parent()
+				.parent()
+				.hide();
+			$(".autoComplete2").select2("close");
+
+			//Esconde campo Ambiente se produto == Virtual Age
+			$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+			$(".request_custom_fields_" + id_txt_versao_cmnet).hide();
+			$("#cmb" + id_cmb_produto).on("change", function (e) {
+				var $productselect = this.value;
+				if ($productselect == tag_produto_virtual_age || $productselect == tag_produto_bemacash_vest) {
+					$(".request_custom_fields_" + id_cmb_ambiente).hide();
+					$(".request_custom_fields_" + id_cmb_versao).hide();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).show();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.hide()
+						.removeClass("required")
+						.addClass("optional");
+				} else if (
+					$productselect == tag_produto_cmnet_reservas ||
+					$productselect == tag_produto_hotal_full ||
+					$productselect == tag_produto_hotel_full ||
+					$productselect == tag_produto_hotal_special
+				) {
+					$(".request_custom_fields_" + id_cmb_ambiente).hide();
+					$(".request_custom_fields_" + id_cmb_versao).hide();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.show()
+						.removeClass("optional")
+						.addClass("required");
+				} else {
+					$(".request_custom_fields_" + id_cmb_ambiente).show();
+					$(".request_custom_fields_" + id_cmb_versao).show();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.hide()
+						.removeClass("required")
+						.addClass("optional");
+				}
+			});
+			if ($url.includes("zcloud")) {
+				$("#cmb" + id_cmb_agrup_serv).append(
+					'<option value="' + tag_agrup_serv_cloud + '">Cloud Computing</option>'
+				);
+				$("#cmb" + id_cmb_agrup_serv).select2("val", tag_agrup_serv_cloud);
+				$("#cmb" + id_cmb_country).prop("disabled", true);
+			} else {
+				$("#cmb" + id_cmb_country).prop("disabled", false);
+			}
+
+			$(".search input[type=submit]").css("display", "block");
+		}
+
+		function desabilitaCombos (campos) {
+			campos.forEach(function (item, index) {
+				var element = "#cmb" + item.id_zendesk;
+				$(element).prop("disabled", true);
+				$("#favorito" + item.id_zendesk).css("display", "none");
+			});
+		}
+	} else {
+		$("#hcform").show();
+		$("#wait").hide();
+	}
+
+	if (
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.suporte_tecnico) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.cloud) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.ouvidoria) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.sac_fly01) ||
+		$url.includes(`/new?ticket_form_id=${form_ti}`)
+	) {
+		registraOnClickdoEnviar();
+	}
+}
+//###final da implementação do favoritos
+
+function initializeCatalogoV1 () {
+	let id_cmb_agrup_serv = CST_CONFIGS.configs.catalog_v1.combo_agrup_serv; //id combo agrupador de serviços conforme ambiente
+	let id_cmb_produto = CST_CONFIGS.configs.catalog_v1.combo_produto; //id combo produto conforme ambiente
+
+	if ($url.includes(`/new?ticket_form_id=${form_ti}`)) {
+
+		var URL_API = CST_CONFIGS.catalogoVone;
+
+		var Campos = [];
+		var selecionados = [];
+		var nomesElementosCombo = [];
+
+		function HabilitaAutoComplete (index) {
+			var nomeElementoCombo = ".autoComplete" + index;
+
+			// var requestAtual
+			var identificadorCombo;
+			$(nomeElementoCombo).select2({
+				theme: "bootstrap",
+				ajax: {
+					url: URL_API + "/api/itenscampos/filhos/",
+					dataType: "json",
+					width: "100%",
+					allowClear: true,
+					data: function (params) {
+						identificadorCombo = $(this.context).id;
+
+						var comboAtualElem = $(this);
+						var comboProximoElem = encontraProximoCombo(comboAtualElem);
+
+						montaCombosSelecionadas(comboAtualElem, comboProximoElem);
+
+						var parametros = {
+							dadosCombo: selecionados,
+							valorAutocomplete: params.term
+						};
+
+						if (!parametros.valorAutocomplete) {
+							parametros.valorAutocomplete = "%";
+						}
+
+						return parametros;
+					},
+
+					processResults: function (resp) {
+						var data1 = resp.filter(function (elm) {
+							if (elm.id == 2402397) return false; // produção spoc
+							return true;
+						});
+
+						var data = data1.sort(
+							sort_by("valor_campo", false, function (a) {
+								return a.toUpperCase();
+							})
+						);
+
+						//===define que 'software' e 'fluig' serão as primeiras opções do select no 1o combo===
+						identificadorCombo = $(this.$element).attr("id");
+						if (identificadorCombo == "cmb" + id_cmb_agrup_serv) {
+							for (var i = 0; i < data.length; i++) {
+								var aux;
+								if (data[i].valor_campo == "Software") {
+									aux = data[0];
+									data[0] = data[i];
+									data[i] = aux;
+								} else if (data[i].valor_campo == "Fluig") {
+									aux = data[1];
+									data[1] = data[i];
+									data[i] = aux;
+								} else if (data[i].valor_campo == "Serviços") {
+									aux = data[2];
+									data[2] = data[i];
+									data[i] = aux;
+								}
+							}
+						}
+						//======
+
+						return {
+							results: $.map(data, function (item) {
+								var id_tag_zendesk = item.id + "|" + item.tag_zendesk;
+								return {
+									text: item.valor_campo,
+									id: id_tag_zendesk
+								};
+							})
+						};
+					},
+					cache: true
+				}
+			});
+
+			$(nomeElementoCombo).on("change", function (elem) {
+				var comboAtualElem = $(elem);
+				if (
+					elem.currentTarget.classList["0"] ===
+					nomesElementosCombo[nomesElementosCombo.length - 1].replace(".", "")
+				) {
+					return;
+				}
+				// Encontra proximo combo (comboProximoElem)
+				var comboProximoElem = encontraProximoCombo(comboAtualElem);
+
+				// Habilita proximo combo se nao houver valor nele
+				if (comboProximoElem && !comboProximoElem.val()) {
+					comboProximoElem.prop("disabled", false);
+					// Desabilita todos os demais se houver valor no proximo
+				} else {
+					var removeTodosProximos;
+					var comboAtualOptionsElem;
+					var classNameAtualElem = elem.currentTarget.classList["0"];
+
+					$.each(nomesElementosCombo, function (index, item) {
+						var itemAtualElem = $(item);
+						comboAtualOptionsElem = $(item + " option");
+
+						if (removeTodosProximos) {
+							comboAtualOptionsElem.remove();
+							itemAtualElem.prop("disabled", true);
+							if (comboProximoElem.selector === item) {
+								itemAtualElem.prop("disabled", false);
+							}
+						}
+						var patternClass = new RegExp(item.replace(".", ""));
+						if (patternClass.test(classNameAtualElem)) {
+							removeTodosProximos = true;
+						}
+					});
+				}
+				if (comboProximoElem) {
+					comboProximoElem.prop("disabled", false);
+					$(comboProximoElem).select2("open");
+				}
+			});
+			$(nomeElementoCombo).on("select2:opening", function (event) { });
+			nomesElementosCombo.push(nomeElementoCombo);
+		}
+
+		function montaCombosSelecionadas (comboAtualElem, comboProximoElem) {
+			geraMarca();
+
+			Campos.forEach(function (item, index) {
+				if (item.interno === "1") return;
+
+				if (item.descricao === "Marca") return;
+
+				var cmbElemento = $("#cmb" + item.id_zendesk);
+				var vlCampoSplitado = cmbElemento.val() ? cmbElemento.val().split("|") : null;
+
+				var novo = {
+					nomeCombo: cmbElemento.data("descricao"),
+					idValorCampo: vlCampoSplitado ? vlCampoSplitado[0] : null,
+					formulario: "0"
+				};
+
+				selecionados.push(novo);
+			});
+
+			if (comboAtualElem && comboAtualElem.val()) {
+				var isDesabilitaRestantes = false;
+				$.each(nomesElementosCombo, function (index, item) {
+					var classNameAtual = comboAtualElem[0].className;
+					var patternClassName = new RegExp(item.replace(".", ""));
+
+					// Desabilita atual e restante
+					if (patternClassName.test(classNameAtual) || isDesabilitaRestantes) {
+						selecionados[index + 1].idValorCampo = null;
+						isDesabilitaRestantes = true;
+					}
+				});
+			}
+		}
+
+		function geraMarca () {
+			selecionados = [];
+
+			var campoMarca = {
+				nomeCombo: "Marca",
+				idValorCampo: CST_CONFIGS.configs.brands_id.totvs,
+				formulario: "0"
+			};
+			selecionados.push(campoMarca);
+		}
+
+		function encontraProximoCombo (comboAtualElem) {
+			var comboProximoElem;
+			var breakIteracao;
+
+			$.each(nomesElementosCombo, function (index, item) {
+				if (breakIteracao) {
+					comboProximoElem = $(item);
+					return false;
+				}
+
+				var patternClass = new RegExp(item.replace(".", ""));
+
+				var className;
+				if (comboAtualElem[0].target) {
+					className = comboAtualElem[0].target.className;
+				} else {
+					className = comboAtualElem[0].className;
+				}
+
+				if (patternClass.test(className)) {
+					breakIteracao = true;
+				}
+			});
+			return comboProximoElem;
+		}
+
+		$.get(URL_API + "/api/campos", function (campos) {
+			criaCombos(campos, "conteudo");
+			Campos = campos;
+
+			// Escondendo campos zendesk
+			$.each(campos, function (index, campo) {
+				$(".request_custom_fields_" + campo.id_zendesk).hide();
+			});
+			$("#hcform").show();
+			$("#wait").hide();
+
+			// Traduzindo o catálogo
+			var conturl = document.URL;
+			if (conturl.includes("/hc/es/")) {
+				$("#tit6").html("País");
+				$("#tit7").html("Agrupador de Servicios");
+				$("#tit13").html("Producto");
+				$("#tit14").html("Módulo");
+				$("#tit15").html("Agrupador de rutina");
+			} else if (conturl.includes("/hc/en-us/")) {
+				$("#tit6").html("Country");
+				$("#tit7").html("Services Grouping");
+				$("#tit13").html("Product");
+				$("#tit14").html("Module");
+				$("#tit15").html("Routine Grouping");
+			}
+		});
+
+		function criaCombos (campos, idDiv) {
+			var template = '<div class="aktnCampos">';
+			template += "<p> ";
+			template +=
+				'		<b> <span  style="font-weight: bold; margin-bottom: 5px;" id="tit{idCampo}">{descricaoTitulo}</span>';
+			template += '	 	<span style="color: #f00;margin-left: 2px;">*</span></b>';
+			template += "		</br>";
+			template +=
+				'    <select style="width:100%" id="cmb{idZendesk}" class="{autoComplete}" data-idcampo="{idCampo}" tabindex="0" data-idzendesk="{idZendesk}" data-descricao="{descricao}">';
+			template += "		</select>";
+			template += " </p>";
+			template += "</div>";
+
+			var html = "";
+			$.each(campos, function (index, data) {
+				if (data.interno === "1") return;
+				var element = template;
+				element = element.replace("{descricaoTitulo}", data.descricao);
+				element = element.replace("{idCampo}", data.id);
+				element = element.replace("{idCampo}", data.id);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{idZendesk}", data.id_zendesk);
+				element = element.replace("{autoComplete}", "autoComplete" + index);
+				element = element.replace("{descricao}", data.descricao);
+				html += element;
+			});
+
+			$("#" + idDiv).html(html);
+
+			$.each(campos, function (index, data) {
+				if (data.interno === "1") return;
+				HabilitaAutoComplete(index);
+			});
+
+			desabilitaCombos(campos);
+
+			//SETA BRASIL COMO PAIS E ESCONDE COMBO PAIS
+			let id_cmb_country = CST_CONFIGS.configs.catalog_v1.combo_pais_onda3;
+			let tag_country_br = CST_CONFIGS.configs.catalog_v1.pais_brasil.tag;
+			let tag_agrup_serv_cloud = CST_CONFIGS.configs.catalog_v1.agrup_serv_cloud.tag;
+			let tag_produto_virtual_age = CST_CONFIGS.configs.catalog_v1.produto_virtual_age.tag;
+			let tag_produto_bemacash_vest = CST_CONFIGS.configs.catalog_v1.produto_bemacash_vest.tag;
+			let tag_produto_cmnet_reservas = CST_CONFIGS.configs.catalog_v1.produto_cmnet_reservas.tag;
+			let tag_produto_hotal_full = CST_CONFIGS.configs.catalog_v1.produto_hotal_full.tag;
+			let tag_produto_hotel_full = CST_CONFIGS.configs.catalog_v1.produto_hotel_full.tag;
+			let tag_produto_hotal_special = CST_CONFIGS.configs.catalog_v1.produto_hotal_special.tag;
+			let id_cmb_ambiente = CST_CONFIGS.configs.catalog_v1.combo_ambiente;
+			let id_txt_num_empresa_virtual_age = CST_CONFIGS.configs.catalog_v1.txt_num_empresa_virtual_age;
+			let id_txt_versao_cmnet = CST_CONFIGS.configs.catalog_v1.txt_versao_cmnet;
+			let id_cmb_versao = CST_CONFIGS.configs.catalog_v1.combo_versao;
+
+			$("#cmb" + id_cmb_country).append('<option value="' + tag_country_br + '">Brasil</option>');
+			$("#cmb" + id_cmb_country).select2("val", tag_country_br);
+			$("#cmb" + id_cmb_country).select2();
+			$("#cmb" + id_cmb_country)
+				.val(tag_country_br)
+				.trigger("change");
+			$("#cmb" + id_cmb_country)
+				.parent()
+				.parent()
+				.hide();
+			$(".autoComplete2").select2("close");
+
+			//Esconde campo Ambiente se produto == Virtual Age
+			$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+			$(".request_custom_fields_" + id_txt_versao_cmnet).hide();
+			$("#cmb" + id_cmb_produto).on("change", function (e) {
+				var $productselect = this.value;
+				if ($productselect == tag_produto_virtual_age || $productselect == tag_produto_bemacash_vest) {
+					$(".request_custom_fields_" + id_cmb_ambiente).hide();
+					$(".request_custom_fields_" + id_cmb_versao).hide();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).show();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.hide()
+						.removeClass("required")
+						.addClass("optional");
+				} else if (
+					$productselect == tag_produto_cmnet_reservas ||
+					$productselect == tag_produto_hotal_full ||
+					$productselect == tag_produto_hotel_full ||
+					$productselect == tag_produto_hotal_special
+				) {
+					$(".request_custom_fields_" + id_cmb_ambiente).hide();
+					$(".request_custom_fields_" + id_cmb_versao).hide();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.show()
+						.removeClass("optional")
+						.addClass("required");
+				} else {
+					$(".request_custom_fields_" + id_cmb_ambiente).show();
+					$(".request_custom_fields_" + id_cmb_versao).show();
+					$(".request_custom_fields_" + id_txt_num_empresa_virtual_age).hide();
+					$(".request_custom_fields_" + id_txt_versao_cmnet)
+						.hide()
+						.removeClass("required")
+						.addClass("optional");
+				}
+			});
+			if ($url.includes("zcloud")) {
+				$("#cmb" + id_cmb_agrup_serv).append(
+					'<option value="' + tag_agrup_serv_cloud + '">Cloud Computing</option>'
+				);
+				$("#cmb" + id_cmb_agrup_serv).select2("val", tag_agrup_serv_cloud);
+				$("#cmb" + id_cmb_country).prop("disabled", true);
+			} else {
+				$("#cmb" + id_cmb_country).prop("disabled", false);
+			}
+
+			$(".search input[type=submit]").css("display", "block");
+		}
+
+		function desabilitaCombos (campos) {
+			campos.forEach(function (item, index) {
+				var element = "#cmb" + item.id_zendesk;
+				$(element).prop("disabled", true);
+			});
+		}
+	} else {
+		$("#hcform").show();
+		$("#wait").hide();
+	}
+
+	if (
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.suporte_tecnico) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.cloud) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.ouvidoria) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.sac_fly01) ||
+		$url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.cst) ||
+		$url.includes(`/new?ticket_form_id=${form_ti}`)
+	) {
+		let id_txt_modulo_skill = CST_CONFIGS.configs.catalog_v1.txt_modulo_skill;
+		let id_num_qtd_agenda = CST_CONFIGS.configs.catalog_v1.num_qtd_agenda;
+		let id_exp_horario_agenda = CST_CONFIGS.configs.catalog_v1.exp_horario_agenda;
+		let id_txt_nome_telefone_contato = CST_CONFIGS.configs.catalog_v1.txt_nome_telefone_contato;
+		let id_combo_aceita_atividade_remota = CST_CONFIGS.configs.catalog_v1.combo_aceita_atividade_remota;
+		let id_txt_endereco_atendimento = CST_CONFIGS.configs.catalog_v1.txt_endereco_atendimento;
+		let id_combo_necessario_viagem = CST_CONFIGS.configs.catalog_v1.combo_necessario_viagem;
+
+		let id_combo_modulo_catv2 = CST_CONFIGS.configs.catalog_v2.combo_modulo;
+		let id_combo_produto_catv2 = CST_CONFIGS.configs.catalog_v2.combo_produto;
+		let id_combo_agrup_serv_catv2 = CST_CONFIGS.configs.catalog_v2.combo_agrup_serv;
+
+		/*Rotina para verificacao e preenchimento de campos no formulario do CST*/
+		if ($url.includes("ticket_form_id=" + CST_CONFIGS.configs.forms.cst)) {
+			//Módulo / Skill
+			$(".request_custom_fields_" + id_txt_modulo_skill).hide();
+			//Quantidade de Agendas (full-time / part-time)
+			$(".request_custom_fields_" + id_num_qtd_agenda).hide();
+			//Horario da Agenda
+			$(".request_custom_fields_" + id_exp_horario_agenda).hide();
+			//Nome e Telefone do Contato
+			$(".request_custom_fields_" + id_txt_nome_telefone_contato).hide();
+			//Aceita atividade Remota
+			$(".request_custom_fields_" + id_combo_aceita_atividade_remota).hide();
+			//Endereço de Atendimento
+			$(".request_custom_fields_" + id_txt_endereco_atendimento).hide();
+			//Necessário Viagem
+			$(".request_custom_fields_" + id_combo_necessario_viagem).hide();
+
+			//evento clique na escolha do módulo
+			$(".request_custom_fields_" + id_combo_modulo_catv2 + " input").on("change", function (e) {
+				var produto = $(".request_custom_fields_" + id_combo_produto_catv2 + " input").val();
+				var agrupador_de_servico = $(".request_custom_fields_" + id_combo_agrup_serv_catv2 + " input").val();
+				if (
+					produto == "produto:alocacao_de_recurso" &&
+					agrupador_de_servico == "agrupador_de_servico:servicos"
+				) {
+					//Módulo / Skill
+					$(".request_custom_fields_" + id_txt_modulo_skill)
+						.show()
+						.addClass("required");
+					//Quantidade de Agendas (full-time / part-time)
+					$(".request_custom_fields_" + id_num_qtd_agenda)
+						.show()
+						.addClass("required");
+					//Horario da Agenda
+					$(".request_custom_fields_" + id_exp_horario_agenda)
+						.show()
+						.addClass("required");
+					//Nome e Telefone do Contato
+					$(".request_custom_fields_" + id_txt_nome_telefone_contato)
+						.show()
+						.addClass("required");
+					//Aceita atividade Remota
+					$(".request_custom_fields_" + id_combo_aceita_atividade_remota)
+						.show()
+						.addClass("required");
+				} else {
+					//Módulo / Skill
+					$(".request_custom_fields_" + id_txt_modulo_skill)
+						.hide()
+						.removeClass("required");
+					//Quantidade de Agendas (full-time / part-time)
+					$(".request_custom_fields_" + id_num_qtd_agenda)
+						.hide()
+						.removeClass("required");
+					//Horario da Agenda
+					$(".request_custom_fields_" + id_exp_horario_agenda)
+						.hide()
+						.removeClass("required");
+					//Nome e Telefone do Contato
+					$(".request_custom_fields_" + id_txt_nome_telefone_contato)
+						.hide()
+						.removeClass("required");
+					//Aceita atividade Remota
+					$(".request_custom_fields_" + id_combo_aceita_atividade_remota)
+						.hide()
+						.removeClass("required");
+					//Endereço de Atendimento
+					$(".request_custom_fields_" + id_txt_endereco_atendimento)
+						.hide()
+						.removeClass("required");
+					//Necessário Viagem
+					$(".request_custom_fields_" + id_combo_necessario_viagem)
+						.hide()
+						.removeClass("required");
+				}
+			});
+
+			$(".request_custom_fields_" + id_combo_aceita_atividade_remota + " input").on("change", function (e) {
+				if ($(this).val() == "atividade_remota_nao") {
+					//Endereço de Atendimento
+					$(".request_custom_fields_" + id_txt_endereco_atendimento)
+						.show()
+						.addClass("required");
+					//Necessário Viagem
+					$(".request_custom_fields_" + id_combo_necessario_viagem)
+						.show()
+						.addClass("required");
+				} else {
+					//Endereço de Atendimento
+					$(".request_custom_fields_" + id_txt_endereco_atendimento)
+						.hide()
+						.removeClass("required");
+					//Necessário Viagem
+					$(".request_custom_fields_" + id_combo_necessario_viagem)
+						.hide()
+						.removeClass("required");
+				}
+			});
+		}
+	}
+}
+
+function ValidacaoCampos () {
+	var valido = true;
+	var template = "";
+	template += '<div class="aktnaviso notification notification-error notification-inline">';
+	template += "Este campo não pode ficar em branco.</div>";
+
+	try {
+		$('.notification-error').each((i, el) => {
+			$(el).hide()
+		});
+
+		//Validação campos padrões da zendesk.
+		$(document).find("#new_request").find('div.required').each((i, el) => {
+			let error = false;
+			if ($(el).find('input[type=text]').length > 0 && $(el).find('input[type=text]').val() == "") {
+				error = true;
+			}
+
+			if (!error && $(el).find('textarea[required=required]').length > 0 && $(el).find('textarea[required=required]').val() == "") {
+				error = true;
+			}
+
+			if (!error && $(el).find('input[type=hidden]').length > 0 && !$(el).find('input[type=hidden]').val()) {
+				error = true;
+			}
+
+			if (error) {
+				valido = false;
+				$(el).append(template);
+			}
+		});
+
+		//Validação Catálogo v1 e v3
+		$(document).find("div.catalogoVoneFields select, .cat-select.required").each((i, el) => {
+			if (!$(el).val() || $(el).val() === '-') {
+				valido = false;
+				$(el).parent().append(template);
+			}
+		})
+
+		try {
+			validarCatalogoV3();
+		} catch (error) {
+			valido = false;
+			const message = `Atenção!<br>
+			Não foi identificado o preenchimento do catálogo de serviços/produtos, limpe o cache e atualize seu navegador. Você também pode acessar os demais canais conforme Guia de Relacionamento TOTVS disponível em <a href="https://suporte.totvs.com">suporte.totvs.com</a> ou tente novamente mais tarde.`;
+			showAlert({message}, () => {
+				console.log("#############################################");
+				console.log(error.message);
+				console.log("#############################################");
+			});
+		}
+
+		//Validação Catálogo v2
+		$(document).find("div.catalogov2-campo.required select").each((i, el) => {
+			if ($(el).parent().attr('style') == 'display: none;') {
+				return;
+			}
+			if (!$(el).val()) {
+				valido = false;
+				$(el).parent().append(template);
+			}
+		})
+
+
+		return valido;
+	} catch (e) {
+		return true;
+	}
+}
+
+function isValidReference (variableInStringToCheck) {
+	try {
+		if (variableInStringToCheck) {
+			if (variableInStringToCheck in window) {
+				return true;
+			}
+			return false;
+		}
+		return false;
+	}
+	catch (e) {
+		console.error(e);
+		return false;
+	}
+}
+
+function getActiveOrganization () {
+
+	organizacao_selecionada = $("#user-info-cod-totvs").val();
+
+	let active;
+	HelpCenter.user.organizations.forEach(function (element) {
+		if (element.name.includes(organizacao_selecionada)) {
+			active = element;
+		}
+	});
+
+	return active;
+}
+
+function checkActiveOrgContainsTag (tag = "") {
+	const activeOrg = getActiveOrganization();
+
+	return activeOrg.tags.includes(tag);
+}
+
+function initializeChat () {
+
+	$(".chat-show").addClass("visible");
+	$(".chat-show").click(function () {
+
+		$('#select_13, #select_14').val("");
+		$('#software.select-chat').val("").change();
+
+		if ($("#email-fake").length == 0) {
+			$(".chat-content #username")
+				.val(DADOS_SESSAO.user.name)
+				.hide()
+				.after('<input name="username-fake" id="username-fake" class="input-chat" placeholder="Nome">');
+			$(".chat-content #username-fake")
+				.val(DADOS_SESSAO.user.name)
+				.attr("disabled", true)
+				.css({ "background-color": "#CCC", border: "1px solid #CCC" });
+			$(".chat-content #email")
+				.val(DADOS_SESSAO.user.email)
+				.hide()
+				.after('<input name="email-fake" id="email-fake" class="input-chat" placeholder="Email">');
+			$(".chat-content #email-fake")
+				.val(DADOS_SESSAO.user.email)
+				.attr("disabled", true)
+				.css({ "background-color": "#CCC", border: "1px solid #CCC" });
+		}
+		$(".chat-show").removeClass("visible");
+		setTimeout(function () {
+			$("#chat").slideDown();
+		}, 150);
+	});
+	$(".chat-hide").click(function () {
+		$("#chat").slideUp();
+		setTimeout(function () {
+			$(".chat-show").addClass("visible");
+		}, 200);
+	});
+
+	var tipos_clientes = getTiposClientes();
+
+	let optionsSoftware = $("#software option");
+	var valuesSoftwareList = $.map(optionsSoftware, function (option) {
+		return option.value;
+	});
+
+	$("#software").change(function (e) {
+		$(".chat-catalog-form").remove();
+		var $software_val = $(this).val();
+		//esconde todos os itens
+		$(
+			"#label-chat, #Bemacash_li, #Cloud_li, #Datasul_li, #DatasulMI_li, #Fluig_li, #Fly01_li, #Logix_li, #Ouvidoria_li, #Protheus_li, #ProtheusMI_li, #RM_li, #RMS_li, #SACFly01_li, #SaladeComando_li, #SolucoesdeSaude_li, #TIinfra_li, #TIsistemas_li, #TotalBanco_li, #Unicoo_li, #YMF_li, #Prime01_li, #Va01_li, #Cmnet01_li, #Cst01_li, #software-details, #Totvs_Varejo_li"
+		).css("display", "none");
+
+		if ($software_val == "Cloud") {
+			e.stopImmediatePropagation();
+			loadCatalogScript("chat")
+				.then(() => new ChatCatalogBuilder(CST_CONFIGS.configs.forms.cloudBasic).build())
+		} else if ($software_val == "Fly01") {
+			$("#label-chat, #Fly01_li").css("display", "block");
+		} else if ($software_val == "VirtualAge") {
+			$("#label-chat, #Va01_li").css("display", "block");
+		} else if ($software_val == "SuporteTecnico") {
+			e.stopImmediatePropagation();
+			loadCatalogScript("chat")
+				.then(() => new ChatCatalogBuilder(CST_CONFIGS.configs.forms.suporte_tecnico).build())
+		}
+	});
+
+	$("#inside-start-chat-bt").on("click", function () {
+		var $spc = " ";
+		var $name = $("#username").val();
+		var $email = $("#email").val();
+		var $textmsg = $("#textmsg").val();
+		var $software = $("#software")
+			.children("option")
+			.filter(":selected");
+		var $software_val = $software.val();
+
+		var $produto_tag = $software.data("produtotag");
+		var $departamento = $software.data("depto");
+		var $deptotag = $software.data("deptotag");
+		var $software_tag = "";
+		var $moreTags = "";
+		var $catalogV3Tags = [];
+
+		var tipos_clientes = getTiposClientes();
+		var camposObrigatoriosOk = true;
+
+		if ($software_val == "Cloud" || $software_val == "SuporteTecnico") {
+			const { catalogInstance, catalogDepartment } = $(".chat-catalog-form").data();
+			const catalogTags = catalogInstance.getTags();
+			$catalogV3Tags.push(...catalogTags);
+			$departamento = catalogDepartment;
+			camposObrigatoriosOk = !catalogInstance.hasInvalidFields();
+			console.log(`----- Departamento de Chat: ${$departamento}  -----`);
+		} else if ($software_val == "VirtualAge") {
+			let $produto_val = $("#produto_va").val();
+			$departamento = $software.concat($spc, $produto);
+			$deptotag = $produto_val;
+			$produto_tag = "produto_" + $produto_val;
+			if ($produto_val == "bm_vestuario") {
+				$departamento = "Bemacash Vestuário";
+				$deptotag = "bm_vestuario";
+				$produto_tag = "produto_" + $produto_val;
+			}
+		} else if ($software_val == "assessoriaportal") {
+			$departamento = "Assessoria ao Portal";
+			$deptotag = "assessoria_portal";
+		}
+
+		$(".chat-body")
+			.find("[class*=input-chat]")
+			.each(function (element) {
+				if ($(this).val()["length"] < 2) {
+					$(this).css("border-color", "red");
+					$(this).css("color", "red");
+					camposObrigatoriosOk = false;
+				} else {
+					$(this).css("border-color", "#DDD");
+					$(this).css("color", "#333333");
+				}
+			});
+		if ($("#software").val() == null || $("#software").val() == 0) {
+			$("#software").css("border-color", "red");
+			camposObrigatoriosOk = false;
+		} else {
+			$("#software").css("border-color", "#DDD");
+		}
+		if (!camposObrigatoriosOk) {
+			if ($name["length"] < 3 || $email["length"] < 6) {
+				$(".chat-body").scrollTop(0);
+			}
+		} else {
+			$("#launcher").css("display", "block");
+
+			zE(function () {
+				$zopim(function () {
+					$zopim.livechat.clearAll();
+					$zopim.livechat.setName(HelpCenter.user.name);
+					$zopim.livechat.setEmail(HelpCenter.user.email);
+					$zopim.livechat.window.setPosition("bl");
+					$zopim.livechat.button.setPosition("bl");
+					$zopim.livechat.window.hide();
+
+					/* 
+					 * Se não existir nenhum departamento cadastrado usa o departamento definido no  Módulo. 
+					 * Isso existe porque o campo Agrupador de Rotina não é obrigatório no catálog, então se 
+					 * ele não for selecionado não vai trazer nenhum departamento e cliente vai para a tela 
+					 * de abertura de ticket. Ele só deve ir para lá quando o departamento está off-line.
+					 * Capiche??!!!
+					 */
+					if (isEmpty($departamento)) {
+						$departamento = departamento_capturado_modulo;
+					}
+
+					$zopim.livechat.departments.setVisitorDepartment($departamento);
+					localStorage.setItem('currentDepartament', $departamento);
+					if ($produto_tag == "produto_N_A") {
+						$zopim.livechat.addTags($deptotag, $software_tag);
+					} else {
+						$zopim.livechat.addTags($deptotag, $produto_tag, $software_tag);
+					}
+
+					/**
+					 * Se a organização do cliente possui pendencia financeira ou não tem suporte liberado 
+					 * direicona para o formulário onde existe o tratamento que bloqueia o suporte. 
+					 * Mas se a marca for CST essa condição não se aplica, porque os clientes tem como solicitar uma negociação via ticket.
+					 */
+
+					let orgfield_suporte_liberado_nao = checkActiveOrgContainsTag('orgfield_suporte_liberado_nao');
+
+
+					if (orgfield_suporte_liberado_nao) {
+						window.location.href = "https://centraldeatendimento.totvs.com/hc/pt-br/requests/new?ticket_form_id=368847";
+						return;
+					} else {
+						$zopim.livechat.theme.reload();
+						$zopim.livechat.setOnConnected(function () {
+
+							if ($chat_started) {
+								$chat_started = false;
+								var department_status = $zopim.livechat.departments.getDepartment($departamento);
+
+								$("#inside-start-chat-bt").attr("value", "Iniciando...");
+								$("#inside-start-chat-bt").attr("disabled", true);
+
+								if (!department_status || department_status.status == "offline") {
+									sessionStorage.setItem("chat", "offline");
+									window.location.href = "https://centraldeatendimento.totvs.com/hc/pt-br/requests/new?ticket_form_id=368847";
+								} else {
+									sessionStorage.setItem("chat", "true");
+									saveCatalogV3Tags($software_val, $catalogV3Tags);
+
+									// bug - Perdendo usuario conectado
+									setTimeout(function () {
+										$zopim.livechat.setName(HelpCenter.user.name);
+										$zopim.livechat.setEmail(HelpCenter.user.email);
+										$zopim.livechat.window.show();
+										handleCustomZopimChatTimeout();
+									}, 5000);
+
+									$zopim.livechat.window.onHide(function () {
+										$zopim.livechat.button.setColor('#EA9B3E'); // Cor alaranjada
+										$zopim.livechat.theme.reload();
+										$("#chat-show").hide();
+										$(".zopim:first").show().css("width", "200px");
+									});
+									$zopim.livechat.window.onShow(function () {
+										$zopim.livechat.window.setColor('#494440'); // cor cinza escuro
+										$zopim.livechat.theme.reload();
+										$(".zopim:first").hide();
+										handleCustomZopimChatTimeout();
+									});
+
+									setTimeout(function () {
+										$("#chat").css("display", "none");
+										$zopim.livechat.say($textmsg);
+										$("#inside-start-chat-bt").attr("value", "Iniciar chat");
+										$("#inside-start-chat-bt").attr("disabled", false);
+									}, 2000);
+								}
+							}
+						});
+						
+						$zopim.livechat.setOnChatStart(function () {
+							handleCustomZopimChatTimeout();
+						});
+						$zopim.livechat.setOnChatEnd(function () {
+							sessionStorage.setItem("chat", "false");
+							sessionStorage.removeItem("chat");
+							localStorage.removeItem("currentDepartament");
+							$zopim.livechat.say("");
+							zE.hide();
+							$zopim.livechat.window.hide();
+							$(".chat-show").addClass("visible");
+							$("#chat-show").css("display", "block");
+							$(".zEWidget-launcher").css("display", "none");
+							$(".zEWidget-launcher").css("z-index", "-99999");
+							$(".zEWidget-launcher").hide();
+							$chat_started = true;
+						});
+					}
+				});
+			});
+		}
+	});
+
+	var chaturl = document.URL;
+	var chat_show = sessionStorage.getItem("chat");
+	if (
+		chaturl.includes("/new?ticket_form_id=308647") ||
+		chaturl.includes("/new?ticket_form_id=294128") ||
+		chaturl.includes("/requests/new#home") ||
+		chaturl.includes("/requests/new?ticket_form_id=762548")
+	) {
+		if (chat_show === "offline") {
+			$(
+				"<p class='chat-offline-warning'>O chat está offline neste momento. Deixe uma mensagem utilizando o formulário abaixo e entraremos em contato.</p>"
+			).insertBefore("#hcform");
+			$("#chat-show").css("display", "none");
+		} else {
+			$("#chat-show").css("display", "block");
+		}
+	}
+
+	if (!chat_show || chat_show == "offline") {
+		zE(function () {
+			zE.hide();
+		});
+
+		$("#chat-show").css("display", "block");
+		$(".zEWidget-launcher").css("display", "none");
+		$(".zEWidget-launcher").css("z-index", "-99999");
+	}
+	setTimeout(function () {
+		if (sessionStorage.getItem("chat") == "true") {
+			zE(function () {
+				zE.show();
+			});
+			$(".zEWidget-launcher").css("display", "block");
+			$(".zEWidget-launcher").css("z-index", "99999");
+			$("#chat-show").css("display", "none");
+		} else $("#chat-show").css("display", "block");
+	}, 5000);
+
+	//Tratamento de segurança de acesso ao auto atendimento
+	validaAcessoAtendimento();
+
+	zE(function () {
+		$zopim(function () {
+			$zopim.livechat.setOnChatEnd(function () {
+				sessionStorage.setItem("chat", "false");
+				sessionStorage.removeItem("chat");
+				localStorage.removeItem("currentDepartament");
+				zE.hide();
+				$zopim.livechat.window.hide();
+				$(".chat-show").addClass("visible");
+				$("#chat-show").css("display", "block");
+				$(".zEWidget-launcher").hide();
+				$(".zEWidget-launcher").css("display", "none");
+				$(".zEWidget-launcher").css("z-index", "-99999");
+			});
+		});
+		zE('webWidget:on', 'chat:departmentStatus', function(dept) {
+			const currentDepartament = localStorage.getItem('currentDepartament');
+			if (currentDepartament == dept.name && dept.status == "offline") {
+				$zopim.livechat.window.hide();
+				$zopim.livechat.endChat();
+				sessionStorage.setItem("chat", "false");
+				sessionStorage.removeItem("chat");
+				zE.hide();
+				localStorage.removeItem("currentDepartament");
+				showAlert($("#msg_chat_offline").html());
+			}
+		});
+	});
+
+	function saveCatalogV3Tags ($software_val, $catalogV3Tags) {
+		if ($software_val == "SuporteTecnico" || $software_val == "Cloud") {
+			$zopim.livechat.addTags(...$catalogV3Tags);
+		}
+	}
+}
+
+function getBrowserSize () {
+	var w, h;
+
+	if (typeof window.innerWidth != "undefined") {
+		w = window.innerWidth; //other browsers
+		h = window.innerHeight;
+	} else if (
+		typeof document.documentElement != "undefined" &&
+		typeof document.documentElement.clientWidth != "undefined" &&
+		document.documentElement.clientWidth != 0
+	) {
+		w = document.documentElement.clientWidth; //IE
+		h = document.documentElement.clientHeight;
+	} else {
+		w = document.body.clientWidth; //IE
+		h = document.body.clientHeight;
+	}
+	return { width: w, height: h };
+}
+
+function CreateCampoLinhaTAFTSS () {
+	var template = `
+	<label id="label_grupoTaf" style="display: none;">Linha TAF/TSS</label>
+	<select id="select_grupoTaf" style="display: none;" name="Linha TAF/TSS" class="sf-detail select-chat"></select>`;
+	$("#software-details").append(template);
+}
+
+function CarregaCampoLinhaTAFTSS () {
+	$("#select_grupoTaf").append(`<option value="0">Selecione uma opção</option>`);
+	$.each(ListaLinhaTAFTSS, function (key, value) {
+		$("#select_grupoTaf").append(`<option value="${key}">${value}</option>`);
+	});
+}
+
+function ValidaCampoTAFTSS (selectedData) {
+	// validando se o produto é TAF e o módulo é TOTVS Automação Fiscal
+	// Produto: TAF | [HOMOLOG] - 2414915 | [PROD] - 2799311
+	// Módulo: TOTVS Automação Fiscal (TAF) | [HOMOLOG] - 2414915 2313874 | [PROD] - 2695585
+	if (
+		selectedData[2].name === "Produto" &&
+		selectedData[2].value === "2799311" &&
+		selectedData[3].name === "Módulo" &&
+		selectedData[3].value === "2695585"
+	) {
+		$("#label_grupoTaf").show();
+		$("#select_grupoTaf").show();
+		CarregaCampoLinhaTAFTSS();
+	} else {
+		$("#label_grupoTaf").hide();
+		$("#select_grupoTaf").hide();
+		$("#select_grupoTaf").empty();
+	}
+}
+
+/**
+ * @description Faz o grouby de um elemento do array no Json.
+ * @param element elemento do array que deseja agrupar, por exemplo id, name, etc.
+ * @param arrayDataJson array no formato json.
+ * @returns array sem as linhas que possuem o elemento repetido.
+ */
+function groupByElement (element, arrayDataJson) {
+	let dataGroupBy = [];
+	if (Array.isArray(arrayDataJson)) {
+		let idBeforeCompare = 0;
+		for (let data of arrayDataJson) {
+			if (data[element] != idBeforeCompare) dataGroupBy.push(data);
+			idBeforeCompare = data[element];
+		}
+	}
+	return dataGroupBy;
+}
+
+function getStaticProducts (segment = false) {
+	var staticSegments = [
+		{
+			name: "Supermercados (Linha Consinco)",
+			tagged_name: "supermercados_linha_consinco",
+			segment: "linha_consinco",
+			has_module: true,
+			department_name: "",
+			tagged_department_name: ""
+		},
+		{
+			name: "Supermercados E-commerce (Linha Consinco)",
+			tagged_name: "supermercados_ecommerce_linha_consinco",
+			segment: "linha_consinco",
+			has_module: false,
+			department_name: "Consinco E-commerce",
+			tagged_department_name: "consinco_ecommerce"
+		},
+		{
+			name: "Supermercados PDV (Linha Consinco)",
+			tagged_name: "supermercados_pdv_linha_conscinco",
+			segment: "linha_consinco",
+			has_module: false,
+			department_name: "Consinco PDV",
+			tagged_department_name: "consinco_pdv"
+		},
+		{
+			name: "Supermercados WMS (Linha Consinco)",
+			tagged_name: "supermercados_wms_linha_consinco",
+			segment: "linha_consinco",
+			has_module: false,
+			department_name: "Consinco Logística",
+			tagged_department_name: "consinco_logistica"
+		}
+	];
+
+	if (segment) {
+		return staticSegments.filter(staticSegment => staticSegment.segment == segment);
+	}
+
+	return staticSegments;
+}
+
+function getStaticModules (productTag = false) {
+
+	var staticModules = [
+		{
+			name: "Comercial Entradas",
+			product_tag: "supermercados_linha_consinco",
+			department_name: "Consinco Comercial Entradas",
+			tagged_department_name: "consinco_comercial_entradas"
+		},
+		{
+			name: "Comercial Saídas",
+			product_tag: "supermercados_linha_consinco",
+			department_name: "Consinco Comercial Saídas",
+			tagged_department_name: "consinco_comercial_saidas"
+		},
+		{
+			name: "Documentos Eletrônicos",
+			product_tag: "supermercados_linha_consinco",
+			department_name: "Consinco Documentos Eletrônicos",
+			tagged_department_name: "consinco_documentos_eletronicos"
+		},
+		{
+			name: "Financeiro e Contábil",
+			product_tag: "supermercados_linha_consinco",
+			department_name: "Consinco Financeiro e Contábil",
+			tagged_department_name: "consinco_financeiro_e_contabil"
+		},
+		{
+			name: "Fiscal",
+			product_tag: "supermercados_linha_consinco",
+			department_name: "Consinco Fiscal",
+			tagged_department_name: "consinco_fiscal"
+		}
+	];
+
+	if (productTag) {
+		return staticModules.filter(staticModule => staticModule.product_tag == productTag);
+	}
+
+	return staticModules;
+}
+
+function appendOptionIfNotExists (elementSelector, optionText, optionElement) {
+
+	var options = $(`${elementSelector} option`);
+
+	var activeOptions = $.map(options, function (option) {
+		return option.innerHTML;
+	});
+
+	if (!activeOptions.includes(optionText)) {
+		$(elementSelector).append(optionElement);
+	}
+}
+
+function sortSelect (selElem) {
+
+	const previousSelection = selElem.value;
+
+	var selectOptions = new Array();
+
+	//Atribui os valores do selElem no select options
+	for (var i = 0; i < selElem.options.length; i++) {
+		selectOptions[i] = new Array();
+		selectOptions[i][0] = selElem.options[i].text;
+		selectOptions[i][1] = selElem.options[i].value;
+		selectOptions[i][2] = selElem.options[i].id;
+	}
+
+	//Ordena o SelectOptions(novo array) ignorando o "Selecione uma opção" na lista de produtos
+	selectOptions.sort((text, textCompare) => {
+		if (text[0] == "Selecione uma opção" || textCompare[0] == "Selecione uma opção") { return 0 }
+		if (text[0] < textCompare[0]) { return -1; }
+		if (text[0] > textCompare[0]) { return 1; }
+		return 0;
+	})
+
+	//Itera sobre a lista do SelectOptions e atribui os campos options para exibir na tela
+	for (var j = 0; j < selectOptions.length; j++) {
+		var selectOption = document.createElement("option");
+		selectOption.innerHTML = selectOptions[j][0];
+		selectOption.value = selectOptions[j][1];
+
+		if (selectOptions[j][1] == previousSelection) {
+			selectOption.setAttribute("selected", "selected");
+		}
+
+		if (selectOptions[j][2] != "") {
+			selectOption.setAttribute("id", selectOptions[j][2]);
+		}
+
+		selElem.options[j] = selectOption;
+	}
+
+	return;
+}
+
+function appendStaticProductOptions () {
+
+	var segments = getStaticProducts();
+
+	for (let index = 0; index < segments.length; index++) {
+
+		appendOptionIfNotExists('#select_13', segments[index].name, $('<option>', {
+			text: segments[index].name
+		}));
+	}
+
+}
+
+function removeDuplicateProducts () {
+	var optionValues = [];
+	$('#select_13 option').each(function () {
+		if ($.inArray(this.value, optionValues) > -1) {
+			$(this).remove()
+		} else {
+			optionValues.push(this.value);
+		}
+	});
+}
+
+function appendStaticModuleOptions (productTag = false) {
+
+	var staticModules = getStaticModules(productTag);
+
+	$.each(staticModules, function (i, item) {
+		$('#select_14').append($('<option>', {
+			text: item.name
+		}));
+	});
+}
+
+function checkIsStaticProduct (productTag = false) {
+	var currentProduct = $("#select_13").children("option").filter(":selected").text();
+	var staticProducts = getStaticProducts(productTag);
+
+	return staticProducts.find(tempStaticProduct => tempStaticProduct.name == currentProduct);
+}
+
+function checkIsStaticProductWithModule (productTag) {
+	var currentProduct = $("#select_13").children("option").filter(":selected").text();
+	var staticProducts = getStaticProducts(productTag);
+
+	return staticProducts.find(tempStaticProduct => tempStaticProduct.name == currentProduct && tempStaticProduct.has_module);
+}
+
+function checkIsStaticModule (segment = false) {
+	var currentModule = $("#select_14").children("option").filter(":selected").text();
+	var staticModules = getStaticModules(segment);
+
+	return staticModules.find(tempStaticModule => tempStaticModule.name == currentModule);
+}
+
+
+function findStaticOption (optionText, type = "product") {
+
+	var staticValues;
+
+	if (type == "product") {
+		staticValues = getStaticProducts();
+	}
+	else {
+		staticValues = getStaticModules();
+	}
+
+	return staticValues.find(tempStaticValue => tempStaticValue.name == optionText);
+}
+
+function loadChatSelect (ev) {
+	hcLoading();
+	var tmpFieldIds = [];
+	var organizationTags = [];
+	organizacao_selecionada = $("#user-info-cod-totvs").val();
+
+	HelpCenter.user.organizations.forEach(function (element) {
+		if (element.name.includes(organizacao_selecionada)) {
+			element.tags.forEach(function (elementTag) {
+				organizationTags.push(elementTag);
+			});
+		}
+	});
+	let currentSelected = $(this); //ev.target);
+
+	// verificando se é o campo de agrupador de rotina, se for nunca colocar a borda vermelha por não ser obrigarório
+	if (currentSelected.context.id == "select_15") {
+		currentSelected.css("border-color", "#DDD");
+	} else {
+		if (currentSelected.val() != null && currentSelected.val() != 0) currentSelected.css("border-color", "#DDD");
+		else currentSelected.css("border-color", "red");
+	}
+	let indxCurrentSelected = parseInt(currentSelected.attr("index"));
+	let selectedData = [];
+	var nextElement = $(`select[index=${indxCurrentSelected + 1}]`).first();
+
+	$("select.sf-detail").each((idx, el) => {
+		if (parseInt($(el).attr("index")) <= indxCurrentSelected) {
+			selectedData.push({ name: $(el).attr("label"), value: $(el).val() });
+		} else {
+			$(el).empty();
+		}
+	});
+
+	if ($("select").length - 1 == indxCurrentSelected) {
+		$("body").loading("stop");
+		return;
+	}
+
+	//Pega as tags do cliente para saber seus acessos
+	var tipos_clientes = getTiposClientes();
+
+	//Tratamento para remover a opção Virtual Age by TOTVS
+	var is_produto_cliente_va = false;
+	if (tipos_clientes.is_cliente_virtual_age || tipos_clientes.is_cliente_va) {
+		is_produto_cliente_va = true;
+	}
+
+	//Verifica o produto do cliente prime
+	var arrClientePrimeProduto = getClientePrimeProduto();
+
+	// valida se o último campo selecionado foi o módulo pra usar a nova rota e buscar os agrupadores de rotina
+	if (selectedData.length == 4) {
+		ValidaCampoTAFTSS(selectedData);
+		$.ajax({
+			url: CST_CONFIGS.catalogoVone + "/api/chat/v1/field-values",
+			method: "POST",
+			data: {
+				selectedFields: JSON.stringify(selectedData),
+				nextElement: nextElement.attr("label"),
+				organizationTags: JSON.stringify(organizationTags)
+			},
+			crossDomain: true,
+			error: err => {
+				$("body").loading("stop");
+
+
+			},
+			success: data => {
+				if (data && data.length > 0) {
+
+					let dataGroupBy = groupByElement('id', data);
+
+					$(nextElement).append(`<option value="0">Selecione uma opção</option>`);
+					dataGroupBy.forEach(item => {
+						var valorItem = item.valor_campo.toLowerCase().replace(" ", "_");
+						$(nextElement).append(
+							`<option value="${item.id}" id="jira_agrupador_de_rotina:_${valorItem}:_id_${item.id}" data-prime="${item.depto_prime_id.trim()}" data-inter="${item.depto_intern_id.trim()}" data-default="${item.depto_id.trim()}">${item.valor_campo
+							}</option>`
+						);
+					});
+
+					// Este é o campo Agrupoador de Rotina
+					$("#label_15").show();
+					$("#select_15").show();
+				} else {
+					$("#label_15").hide();
+					$("#select_15").hide();
+				}
+			}
+		})
+	} else {
+		$(nextElement).append(`<option value="0">Selecione uma opção</option>`);
+
+		if (checkIsStaticProduct("linha_consinco")) {
+
+			var currentProduct = $("#select_13").children("option").filter(":selected").text();
+			var staticProducts = getStaticProducts("linha_consinco");
+
+			var selectedStaticProduct = staticProducts.find(item => item.name == currentProduct);
+
+			if (selectedStaticProduct && selectedStaticProduct.tagged_name == "supermercados_linha_consinco") {
+				$('#label_14').show();
+				$('#select_14').show();
+				appendStaticModuleOptions("supermercados_linha_consinco");
+			}
+			else {
+				$('#label_14').hide();
+				$('#select_14').hide();
+			}
+		}
+		else {
+			$.ajax({
+
+				url: CST_CONFIGS.catalogoVone + "/api/chat/v1/field-values",
+				method: "POST",
+				data: {
+					selectedFields: JSON.stringify(selectedData),
+					nextElement: nextElement.attr("label"),
+					organizationTags: JSON.stringify(organizationTags)
+				},
+				crossDomain: true,
+				error: err => {
+					$("body").loading("stop");
+					console.log("err");
+					console.log(err);
+				},
+				success: data => {
+
+					if (data && data.length > 0) {
+						//fazer um group dos objetos que são repetidos para não duplicar o item
+						data.sort(function (a, b) {
+							return new Intl.Collator(undefined, {
+								numeric: true,
+								sensitivity: "accent"
+							}).compare(a.valor_campo, b.valor_campo);
+						}).forEach(item => {
+							// verifica se está montando o select do módulo
+							// se já tiver <option> com esse módulo, verifica se ele possui agrupador de rotina
+							// se não tiver agrupador de rotina, remove o option existente para montar novamente com os valores de moduloxdepartamento atual
+							if (nextElement.attr("label") == "Módulo") {
+
+								if (tmpFieldIds.includes(item.id)) {
+									if (item.agrupador_de_rotina_id > 0) {
+										return;
+									}
+									$('#select_14 option').last().remove()
+								}
+							} else {
+								if (tmpFieldIds.includes(item.id)) return;
+							}
+							tmpFieldIds.push(item.id)
+
+							//verifica se o cliente é smart esocial e tem produto datasul sem ser prime
+							if (
+								arrClientePrimeProduto.length == 0 &&
+								contains(item.tag_zendesk, "jira_produto:_datasul") &&
+								tipos_clientes.is_cliente_smart_esocial_ativo
+							) {
+
+								$(nextElement).append(
+									`<option value="${item.id}" id="${item.tag_zendesk}" >${item.valor_campo}</option>`
+								);
+
+							} else {
+								/* 
+								 * Captura o departamento do "Módulo", se nenhum "Agrupador de Rotina" (0 u undefined) for selecionado no pre-chat.
+								 */
+								if (contains(item.tag_zendesk, "jira_modulo:") && isEmpty(item.agrupador_de_rotina_id)) {
+									if (!isEmpty(item.depto_id)) {
+										departamento_capturado_modulo = item.depto_id;
+									}
+								}
+
+								//Aqui mostra o produto Virtual Age by TOTVS caso o cliente seja VA
+								if (contains(item.tag_zendesk, "virtual_age_by_totvs")) {
+									if (is_produto_cliente_va && contains(item.tag_zendesk, "jira_produto:")) {
+										if (typeof item.depto_prime_id != "undefined" && typeof item.depto_intern_id != "undefined" && typeof item.depto_id != "undefined") {
+											$(nextElement).append(
+												`<option value="${item.id}" id="${item.tag_zendesk
+												}" data-prime="${item.depto_prime_id.trim()}" data-inter="${item.depto_intern_id.trim()}" data-default="${item.depto_id.trim()}">${item.valor_campo
+												}</option>`
+											);
+										} else {
+											$(nextElement).append(
+												`<option value="${item.id}" id="${item.tag_zendesk}" >${item.valor_campo
+												}</option>`
+											);
+										}
+									}
+									//Aqui retorna demais combos e esconde produto Virtual Age
+								} else {
+									if (typeof item.depto_prime_id != "undefined" && typeof item.depto_intern_id != "undefined" && typeof item.depto_id != "undefined") {
+
+										$(nextElement).append(
+											`<option value="${item.id}" id="${item.tag_zendesk
+											}" data-prime="${item.depto_prime_id.trim()}" data-inter="${item.depto_intern_id.trim()}" data-default="${item.depto_id.trim()}">${item.valor_campo
+											}</option>`
+										);
+									} else {
+										$(nextElement).append(
+											`<option value="${item.id}" id="${item.tag_zendesk}" >${item.valor_campo
+											}</option>`
+										);
+
+									}
+								}
+							}
+						});
+
+						// Inclui options de produtos estaticos
+						appendStaticProductOptions();
+						removeDuplicateProducts();
+						sortSelect(document.getElementById('select_13'));
+
+						if ($(nextElement).attr("id") == "select_7") {
+							$(nextElement).val(CST_CONFIGS.configs.catalog_v1.agrup_serv_software.id); // Software jira_agrupador_de_servicos:_software:_id_2401858
+							$(nextElement).trigger("change");
+						}
+
+
+					}
+
+				}
+			})
+			tmpFieldIds = [];
+		}
+	}
+
+
+
+	//Se for tipo cliente atendimento 360 mantem apenas o campo mensagem para suporte técnico
+	if (
+		tipos_clientes.is_atendimento_360 &&
+		$("#software")
+			.children("option")
+			.filter(":selected")
+			.val() == "SuporteTecnico"
+	) {
+		$("#software-details").css("display", "none");
+	} else {
+		$("#software-details").css("display", "block");
+	}
+	setTimeout(function () {
+
+		hcLoading('stop')
+
+	}, 5000)
+}
+
+function validaAcessoAtendimento () {
+	var tipos_clientes = getTiposClientes();
+
+	if (!tipos_clientes.is_cliente_intera) {
+		$("select#software")
+			.find("#scomando-option")
+			.remove();
+	}
+
+	if (!tipos_clientes.is_cliente_prime) {
+		$("select#software")
+			.find("#prime-option")
+			.remove();
+	}
+
+	if (!tipos_clientes.is_cliente_cloud) {
+		$("select#software")
+			.find("#cloud-option")
+			.remove();
+	}
+
+	if (!tipos_clientes.is_cliente_va || !tipos_clientes.is_cliente_virtual_age) {
+		$("select#software")
+			.find("#va-option")
+			.remove();
+	}
+	if (
+		tipos_clientes.is_atendimento_360 &&
+		$("#software")
+			.children("option")
+			.filter(":selected")
+			.val() == "SuporteTecnico"
+	) {
+		$("#software-details").css("display", "none");
+	}
+}
+
+/**
+ * Verifica as tags aplicadas ao usuário de acordo com a organização dele
+ */
+function getTiposClientes () {
+	//Esse cara guarda o id da empresa. Assim ele pega a empresa correta no foreach
+	organizacao_selecionada = $("#user-info-cod-totvs").val();
+
+	var tipos_clientes = {
+		is_atendimento_360: false,
+		is_cliente_cloud_prime_clientes_sp: false,
+		is_cliente_prime: false,
+		is_cliente_internacional: true,
+		is_cliente_intera: false,
+		is_cliente_cloud: false,
+		is_cliente_virtual_age: false,
+		is_cliente_va: false,
+		is_cliente_cmnet: false,
+		is_cliente_smart_esocial_ativo: false,
+		is_cliente_pc_sistemas: false,
+		is_cliente_prime_protheus: false,
+		is_cliente_prime_rm: false,
+		is_cliente_prime_datasul: false,
+		is_cliente_prime_Logix: false,
+		is_cliente_prime_sisjuri: false,
+		is_cliente_prime_tss: false,
+		is_cliente_prime_taf: false,
+		is_cliente_prime_saude: false,
+		is_cliente_prime_consinco: false
+	};
+
+	HelpCenter.user.organizations.forEach(function (org) {
+		if (org.name.includes(organizacao_selecionada)) {
+			if (!tipos_clientes.is_atendimento_360) {
+				tipos_clientes.is_atendimento_360 = $.inArray("orgfield_cliente_atendimento_360", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_cloud_prime_clientes_sp) {
+				tipos_clientes.is_cliente_cloud_prime_clientes_sp = $.inArray("cloud_prime_cli_sp_prod_geral_sim", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime) {
+				tipos_clientes.is_cliente_prime = $.inArray("orgfield_cliente_prime", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_consinco) {
+				tipos_clientes.is_cliente_prime_consinco = $.inArray("cliente_prime_consinco", org.tags) >= 0;
+			}
+			if (tipos_clientes.is_cliente_internacional) {
+				if ($.inArray("orgfield_pais_brasil", org.tags) >= 0) tipos_clientes.is_cliente_internacional = false;
+			}
+			if (!tipos_clientes.is_cliente_intera) {
+				tipos_clientes.is_cliente_intera = $.inArray("orgfield_cliente_intera", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_cloud) {
+				tipos_clientes.is_cliente_cloud = $.inArray("orgfield_cliente_cloud", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_virtual_age) {
+				tipos_clientes.is_cliente_virtual_age = $.inArray("orgfield_cliente_virtual_age", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_va) {
+				tipos_clientes.is_cliente_va = $.inArray("orgfield_cliente_va", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_cmnet) {
+				tipos_clientes.is_cliente_cmnet = $.inArray("orgfield_cliente_cmnet", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_smart_esocial_ativo) {
+				tipos_clientes.is_cliente_smart_esocial_ativo = $.inArray("cliente_smart_esocial_ativo", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_pc_sistemas) {
+				tipos_clientes.is_cliente_pc_sistemas = $.inArray("orgfield_cliente_pc_sistemas", org.tags) >= 0;
+			}
+
+			/**
+			 * Tags marcadas no Zendesk checkbox
+			 *
+			 * cliente_prime_protheus -> Protheus
+			 * cliente_prime_rm -> RM
+			 * cliente_prime_datasul -> Datasul
+			 * cliente_prime_Logix -> Logix
+			 * cliente_prime_sisjuri -> Sisjuri
+			 * cliente_prime_tss -> TSS
+			 * cliente_prime_taf -> TAF
+			 * cliente_prime_saude -> Saude
+			 */
+			if (!tipos_clientes.is_cliente_prime_protheus) {
+				tipos_clientes.is_cliente_prime_protheus = $.inArray("cliente_prime_protheus", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_rm) {
+				tipos_clientes.is_cliente_prime_rm = $.inArray("cliente_prime_rm", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_datasul) {
+				tipos_clientes.is_cliente_prime_datasul = $.inArray("cliente_prime_datasul", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_Logix) {
+				tipos_clientes.is_cliente_prime_Logix = $.inArray("cliente_prime_logix", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_sisjuri) {
+				tipos_clientes.is_cliente_prime_sisjuri = $.inArray("cliente_prime_sisjuri", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_tss) {
+				tipos_clientes.is_cliente_prime_tss = $.inArray("cliente_prime_tss", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_taf) {
+				tipos_clientes.is_cliente_prime_taf = $.inArray("cliente_prime_taf", org.tags) >= 0;
+			}
+			if (!tipos_clientes.is_cliente_prime_saude) {
+				tipos_clientes.is_cliente_prime_saude = $.inArray("cliente_prime_saude", org.tags) >= 0;
+			}
+		}
+	});
+
+	return tipos_clientes;
+}
+
+/**
+ * Pega as tags informadas no zendesk para clientes prime do produto
+ *
+ * Exemplo de como elas são aplicadas: elas são informadas quando é clicado no chekbox
+ * Cliente Prime Protheus, ou Datasul por exemplo da Organização, para cada um que for
+ * marcado vai criar a taga lá no Zendesk.
+ *
+ * Tags abaixo:
+ * Protheus: cliente_prime_protheus
+ * RM: cliente_prime_rm
+ * Datasul: cliente_prime_datasul
+ * Logix: cliente_prime_Logix
+ * Sisjuri: cliente_prime_sisjuri
+ * TSS: cliente_prime_tss
+ * TAF: cliente_prime_taf
+ */
+function getClientePrimeProduto () {
+	var tipos_clientes = getTiposClientes();
+	let nomeProdutoPrime = [];
+
+	if (tipos_clientes.is_cliente_prime_protheus) {
+		nomeProdutoPrime.push("protheus");
+	}
+	if (tipos_clientes.is_cliente_prime_rm) {
+		nomeProdutoPrime.push("rm");
+	}
+	if (tipos_clientes.is_cliente_prime_datasul) {
+		nomeProdutoPrime.push("datasul");
+	}
+	if (tipos_clientes.is_cliente_prime_Logix) {
+		nomeProdutoPrime.push("logix");
+	}
+	if (tipos_clientes.is_cliente_prime_sisjuri) {
+		nomeProdutoPrime.push("sisjuri");
+	}
+	if (tipos_clientes.is_cliente_prime_tss) {
+		nomeProdutoPrime.push("tss");
+	}
+	if (tipos_clientes.is_cliente_prime_taf) {
+		nomeProdutoPrime.push("taf");
+	}
+	if (tipos_clientes.is_cliente_prime_saude) {
+		nomeProdutoPrime.push("saude");
+	}
+
+	return nomeProdutoPrime;
+}
+
+document.addEventListener("onstartstep", function (event) {
+	compassRunning = false;
+	if (event.detail.order == 6) {
+		compassRunning = true;
+		$(".menu-item-options").show();
+	} else if (event.detail.order > 5 && event.detail.order < 14) {
+		compassRunning = true;
+	} else if (event.detail.order > 14) {
+		$(".menu-item-options").hide();
+		closeAllDropdowns();
+	}
+});
+
+/**
+ * Testa se existe a substring dentro da string.
+ * @param {*} str
+ * @param {*} expressao
+ */
+function contains (str, expressao) {
+	if (typeof str == 'string' && expressao != "") {
+		str = str.toLowerCase();
+		return str.includes(expressao); //verifica se a string contem a expressão substring, se sim retorna true
+	} else {
+		return false;
+	}
+}
+
+/**
+ * Configurações do widget do zendesk (chat)
+ */
+window.zESettings = {
+	webWidget: {
+		position: { horizontal: "left", vertical: "bottom" },
+		color: {
+			theme: '#494440',
+			launcher: '#EA9B3E',
+			header: '#494440',
+		}
+	}
+};
+
+function scriptLoadButtonVtex () {
+	var contador = 0;
+	var id = setInterval(verifica, 2000);
+	function verifica () {
+		if (DADOS_SESSAO && DADOS_SESSAO.active_organization && DADOS_SESSAO.active_organization.tags) {
+			$('.col-sm-2 .list-group').each(function () {
+				if ($(this).find('.list-group-item-vtex').length == 0) {
+					if (jQuery.inArray("orgfield_cliente_vtex", DADOS_SESSAO.active_organization.tags) !== -1) {
+						var active = '';
+						var arrow = '';
+						if (document.location.href.includes('#vtex')) {
+							active = 'active';
+							arrow = '<div class="arrow"></div>';
+						}
+
+						var _url = CST_CONFIGS.env == "prod" ? CST_CONFIGS.prod_url : CST_CONFIGS.homolog_url[1];
+						$(this).append('<a href="' + _url + '/hc/' + html.getlanguage() + '/#vtex" class="list-group-item-vtex list-group-item click-form  ' + active + '" data-url="' + _url + '/hc/' + html.getlanguage() + '/#vtex" >Vtex ' + arrow + '</a>');
+					}
+				}
+			});
+			clearInterval(id);
+		}
+		contador++;
+		if (contador == 60) clearInterval(id);
+	}
+}
+
+// Verificar se é vazio, não utilizei o do lodash _.isEmpty(value) porque não considera espaço em branco
+function isEmpty (str) {
+	return (typeof str == 'undefined') ||
+		(str == null) ||
+		(str == false) || //same as: str
+		(str.length == 0) ||
+		(str == "") ||
+		(str.replace(/\s/g, "") == "") ||
+		(!/[^\s]/.test(str)) ||
+		(/^\s*$/.test(str));
+}
+
+function acceptKeywordsRestricted (data) {
+	if (!hasTotvsMyPasswordContent(data)) {
+		let params = {
+			words: data,
+		};
+		let options = {
+			url: MIDDLEWAREPATH + "/verifyWordPassword",
+			type: "POST",
+			contentType: "application/json",
+			dataType: "json",
+			data: JSON.stringify(params)
+		};
+		html.request(options)
+			.then(function (result) {
+				if (result.wordPassword) {
+					showAlert(textMessageTotvsMyPassword);
+					hasKeywordsRestricted = true;
+				} else {
+					hasKeywordsRestricted = false;
+				}
+			})
+			.catch(function (error) {
+				hasKeywordsRestricted = false;
+			});
+	}
+}
+
+function hasRestrictedWordsAndNotUsedTotvsMyPassword () {
+	return hasKeywordsRestricted && !hasTotvsMyPasswordContent($("#request_description").val());
+}
+
+function hasTotvsMyPasswordContent (content) {
+	return content.indexOf(TOTVSMINHASENHACONTEUDO) >= 0;
+}
+
+function setCustomFieldAcceptRestrictedWords (checked) {
+	$("#request_custom_fields_" + CST_CONFIGS.configs.fields.LGPD_ACEITE_PALAVRAS_RESTRITAS.id).prop( "checked", checked );
+}
+
+function customZopimChat() {
+	$("#webWidget").contents().find("[aria-label='Popout']").remove();
+	$("#webWidget").contents().find("[data-testid='button-end-chat']")
+		.css( "background-color", "#FEAC0E");
+	$("#webWidget").contents().find("[data-testid='button-end-chat']")
+		.html("<span style='font-weight: bold; color: #FFFFFF'>Encerrar chat</span>");
+	$("#webWidget").contents().find("[data-testid='button-end-chat']")
+		.css( "padding", "0 10px 0 10px");
+}
+
+function handleCustomZopimChatTimeout() {
+	customZopimChat();
+	setTimeout(customZopimChat, 200);
+	setTimeout(customZopimChat, 500);
+	setTimeout(customZopimChat, 1000);
+	setTimeout(customZopimChat, 2000); 
+}

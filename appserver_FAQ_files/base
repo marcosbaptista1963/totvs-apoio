@@ -1,0 +1,528 @@
+class AbstractCatalogBuilder {
+    constructor() {
+        this.ZENDESK_PLATFORM_ID = 1;
+        this.FIRST_CATALOG_ID = 0;
+        this.DEFAULT_TOTVS_CODE = 'T0000';
+        this.EXTERNAL_CUSTOMER_FIELD_TAG = 'cattotvs_tipo_cliente_externo';
+        this.INTERNAL_CUSTOMER_FIELD_TAG = 'cattotvs_tipo_cliente_interno';
+        this.isFirstInteraction = true;
+        this.catalogUtils = this.catalogUtil;
+        this.favoriteCatalogBuilder = new FavoriteCatalogBuilder(this.formId, this.catalogUtils);
+        this.nativeConditionalResolver = new ZendeskNativeConditionalsResolver();
+    }
+    get formId() {
+        throw new Error("Abstract method must be implemented");
+    }
+    get catalogUtil() {
+        return new CatalogUtils();
+    }
+    build() {
+        var _a;
+        const isFormEnabled = !!($("#new_request").length && ((_a = HelpCenter === null || HelpCenter === void 0 ? void 0 : HelpCenter.user) === null || _a === void 0 ? void 0 : _a.email));
+        if (isFormEnabled) {
+            this.insertCatalogDivAfterCustomFields();
+            this.removeZendeskCustomFields();
+            this.registerSubmitButtonListener();
+            this.saveFormIdValueField();
+            this.fetchCatalogItem({ previousId: this.FIRST_CATALOG_ID });
+        }
+    }
+    removeZendeskCustomFields() {
+        $('p:contains("hide_in_portal")').parent().remove();
+        $('p:contains("catalog_snapshot")').parent().hide();
+        $('p:contains("form_id")').parent().hide();
+        $(`.request_custom_fields_${CST_CONFIGS.configs.catalog_v3.check_prime_nova_oferta}`).insertAfter('.catalog-form').hide();
+    }
+    registerSubmitButtonListener() {
+        $("input[name='commit']").on('click', () => {
+            if (!$('p:contains("catalog_snapshot")').parent().find('textarea').val()) {
+                this.saveCatalogIdsToSnapshotField();
+            }
+        });
+    }
+    insertCatalogDivAfterCustomFields() {
+        let catalogDiv = '<div class="catalog-form">';
+        $(catalogDiv).insertBefore($("div.request_subject"));
+        $(".catalog-form").append("</div>");
+    }
+    fetchCatalogItem(previousCatalog) {
+        this.catalogUtil.showLoading();
+        this.getCatalogUrlSuffix()
+            .then((urlSuffix) => {
+            this.catalogUtil.request({
+                type: 'GET',
+                data: this.getData(previousCatalog),
+                urlSuffix,
+            }).then(response => {
+                if ($.isEmptyObject(response)) {
+                    this.onAfterLoadCatalogsTree(previousCatalog);
+                }
+                else {
+                    this.buildSelectElement(response[0]);
+                }
+            }).catch(error => {
+                this.catalogUtil.removeLoading();
+                showCatalogAlertError();
+            });
+        });
+    }
+    getData(previousCatalog) {
+        const { previousId, countryTag } = previousCatalog;
+        return {
+            form_id: this.formId,
+            previous_catalog_id: previousId,
+            country: countryTag,
+            language: this.catalogUtil.getLanguage()
+        };
+    }
+    buildSelectElement(catalogResponse) {
+        const catalogVO = this.catalogUtil.parseResponse(this, catalogResponse);
+        const { externalIdDescription, isVisibleToEndUser } = catalogVO;
+        this.buildCatalogCustomField(catalogVO);
+        this.registerOnChangeListener(externalIdDescription);
+        this.resolveVisibleToEndUser(externalIdDescription, isVisibleToEndUser);
+    }
+    buildCatalogCustomField(catalogVO) {
+        $(".catalog-form").append(this.getSelectElement(catalogVO));
+        this.setCatalogVoToElement(catalogVO);
+        this.favoriteCatalogBuilder.build(catalogVO);
+        this.addFieldDescription(catalogVO);
+    }
+    getSelectElement(catalogVO) {
+        let selectTemplate = this.getSelectHtmlStructure(catalogVO);
+        $.each(catalogVO.getSelectOptionsValues(), (key, item) => {
+            const isItemSelected = item.isBso ? '' : catalogVO.selected;
+            const countryTag = item.countryTag || '';
+            selectTemplate += `<option value="${this.catalogUtils.getOptionsValue(catalogVO, item)}" catalogId="${item.catalogId}" countryTag="${countryTag}" ${isItemSelected}> ${item.value} </option>`;
+        });
+        selectTemplate += '</div>';
+        return selectTemplate;
+    }
+    getSelectHtmlStructure(catalogVO) {
+        const { displayNone, externalIdDescription, label, labelRequired, externalIdAttr, required, fieldTypeKey } = catalogVO;
+        return `<div class="form-field string" ${displayNone} id="cat-totvs-select-group-${externalIdDescription}">
+                                <label for=${label} style="max-width: 93%;">${label}${labelRequired}</label>
+                                <select name="request[custom_fields][${externalIdDescription}]" id="cat-totvs-select-${externalIdDescription}" ${externalIdAttr} 
+                                    class="form-control cat-select ${required}" data-nome="${label}" field-type="${fieldTypeKey}"
+                                    style="width: 93%; display: inline-block; position: static;">
+                                <option value=""></option>
+                                <option value="-">-</option>`;
+    }
+    setCatalogVoToElement(catalogVO) {
+        $(`#cat-totvs-select-group-${catalogVO.externalIdDescription}`).data("catalogVO", catalogVO);
+    }
+    addFieldDescription(catalogVO) {
+        const { externalIdDescription, fieldDescription } = catalogVO;
+        if (fieldDescription) {
+            $(`#cat-totvs-select-group-${externalIdDescription}`).append(`<p id="request_organization_id_hint">${fieldDescription}</p>`);
+        }
+    }
+    registerOnChangeListener(externalIdDescription) {
+        $(`#cat-totvs-select-${externalIdDescription}`).on('change', (el) => {
+            this.onSelectChange(el.currentTarget, externalIdDescription);
+        });
+    }
+    resolveVisibleToEndUser(externalId, isVisibleToEndUser) {
+        isVisibleToEndUser ? this.catalogUtil.setupSelect2(externalId) : this.fetchNextCatalogField(externalId);
+    }
+    onSelectChange(selected, externalId) {
+        if (selected.value === '-') {
+            this.catalogUtil.removeAllSelectChildren(externalId);
+        }
+        else {
+            this.nativeConditionalResolver.registerConditionalFieldsListener(selected, externalId);
+            this.fetchNextCatalogField(externalId);
+        }
+    }
+    fetchNextCatalogField(externalId) {
+        this.catalogUtil.removeAllSelectChildren(externalId);
+        this.fetchCatalogItem(this.getPreviousCatalog(externalId));
+    }
+    getPreviousCatalog(externalId) {
+        const previousCatalog = { previousId: '', countryTag: '' };
+        if (externalId) {
+            const previousCatalogElement = $(`#cat-totvs-select-${externalId} option:selected`);
+            previousCatalog.previousId = previousCatalogElement.attr("catalogId");
+            previousCatalog.countryTag = previousCatalogElement.attr("countryTag");
+        }
+        else {
+            previousCatalog.previousId = $('[empty-external-id] option:selected').last().attr("catalogId");
+        }
+        return previousCatalog;
+    }
+    saveCatalogIdsToSnapshotField() {
+        let fields = [];
+        $(".cat-select option:selected").each((i, el) => {
+            if ($(el).val()) {
+                fields.push($(el).attr("catalogid"));
+            }
+        });
+        $('p:contains("catalog_snapshot")').parent().find('textarea').val(JSON.stringify(fields));
+    }
+    saveFormIdValueField() {
+        $('p:contains("form_id")').parent().find('input').val($("#request_issue_type_select").val());
+    }
+    getFirstInteractionValues(responseValues) {
+        this.isFirstInteraction = false;
+        const firstTag = this.isAtendimento() ? this.INTERNAL_CUSTOMER_FIELD_TAG : this.EXTERNAL_CUSTOMER_FIELD_TAG;
+        return [responseValues.find(response => response.tag == firstTag)];
+    }
+    isAtendimento() {
+        return document.URL.startsWith("https://atendimento");
+    }
+    onAfterLoadCatalogsTree(previousCatalog) {
+        this.saveCatalogIdsToSnapshotField();
+        this.catalogUtil.removeLoading();
+    }
+    async getCatalogUrlSuffix() {
+        const actualOrganization = await this.catalogUtil.getActualOrganization();
+        return `catalogs/v2/${actualOrganization}/${this.ZENDESK_PLATFORM_ID}/values`;
+    }
+}
+class FavoriteCatalogBuilder {
+    constructor(formId, catalogUtils) {
+        this.formId = formId;
+        this.favorites = [];
+        this.hasUserFavoritesLoaded = false;
+        this.registerOnModalItemSelectionClick();
+        this.catalogUtils = catalogUtils;
+    }
+    build(catalogVO) {
+        this.fetchUserFavoriteItems();
+        let favoriteTemplate = '';
+        if (catalogVO.isVisibleToEndUser) {
+            favoriteTemplate = `<div class="pointerDiv favorite-button" id="btn-favorite-${catalogVO.externalIdDescription}" title="Gerenciar Opções">
+                                    <img class="showModal" src="https://theme.zdassets.com/theme_assets/888110/8b88cf393cab590b8aa65da6e27efd863c9a871b.svg" 
+                                        width="15" height="15">
+                                </div>`;
+            const unfavorites = catalogVO.favoriteFieldVO.favorites.length ? catalogVO.favoriteFieldVO.unfavorites : catalogVO.responseValues;
+            $(`#cat-totvs-select-group-${catalogVO.externalIdDescription}`)
+                .data("unfavorite-items", unfavorites)
+                .data("catalogVO", catalogVO);
+            $(`#cat-totvs-select-group-${catalogVO.externalIdDescription}`).append(favoriteTemplate);
+            this.registerOnFavoriteButtonClick(catalogVO);
+        }
+    }
+    fetchUserFavoriteItems() {
+        const self = this;
+        if (!self.hasUserFavoritesLoaded) {
+            this.catalogUtils.request({ type: 'GET', urlSuffix: `userFavoriteCatalogsFields/${self.formId}/${HelpCenter.user.email}` })
+                .then(response => {
+                self.favorites = response;
+                self.hasUserFavoritesLoaded = true;
+            })
+                .catch(error => {
+                console.error(`Erro ao consultar favoritos do catálogo ${error}`);
+                this.catalogUtils.removeLoading();
+                showCatalogAlertError();
+            });
+        }
+    }
+    registerOnFavoriteButtonClick(catalogResponse) {
+        $(`#btn-favorite-${catalogResponse.externalIdDescription}`).on('click', (el) => {
+            this.showModal(el.currentTarget.parentElement);
+            this.registerModalListeners();
+        });
+    }
+    registerModalListeners() {
+        this.onCloseClick();
+        this.onAddButtonClick();
+        this.onRemoveButtonClick();
+        this.onSaveButtonClick();
+    }
+    onCloseClick() {
+        $(".modal-header").find(".close").on('click', () => {
+            $('.modal2').css("display", "none");
+            $('.modal2').html("");
+        });
+    }
+    onAddButtonClick() {
+        $("#btn-add-favorite").on('click', () => {
+            $("#catalogo").find(".selectedDiv").each((index, el) => {
+                $(el).removeClass("selectedDiv").addClass("selectableDiv");
+                $("#myfavoritos").append($(el).clone());
+                $(el).remove();
+            });
+        });
+    }
+    onRemoveButtonClick() {
+        $("#btn-remove-favorite").on('click', () => {
+            $("#myfavoritos").find(".selectedDiv").each(function (index) {
+                $(this).removeClass("selectedDiv").addClass("selectableDiv");
+                $("#catalogo").append($(this).clone());
+                $(this).remove();
+            });
+        });
+    }
+    onSaveButtonClick() {
+        const self = this;
+        $("#btn-salvar-favoritos").on('click', () => {
+            $('#wait').show();
+            let favoritesToSave = [];
+            const { previousCatalogId } = $(".favorites-modal").data();
+            $("#myfavoritos").find("div").each(function (index) {
+                const favorite = {
+                    "catalogId": $(this).data("id"),
+                    "previousCatalogId": previousCatalogId,
+                    "userEmail": HelpCenter.user.email,
+                    "formId": self.formId,
+                };
+                favoritesToSave.push(favorite);
+            });
+            favoritesToSave = favoritesToSave.length ? favoritesToSave : [{
+                    "previousCatalogId": previousCatalogId,
+                    "userEmail": HelpCenter.user.email,
+                    "formId": self.formId
+                }];
+            self.saveFavorites(favoritesToSave);
+        });
+    }
+    registerOnModalItemSelectionClick() {
+        $("body").on("click", ".favorite-item", (ev) => {
+            ev.stopPropagation();
+            ev.preventDefault();
+            if ($(ev.currentTarget).hasClass("selectableDiv")) {
+                $(ev.currentTarget).removeClass("selectableDiv").addClass("selectedDiv");
+            }
+            else {
+                $(ev.currentTarget).removeClass("selectedDiv").addClass("selectableDiv");
+            }
+        });
+    }
+    showModal(parentElement) {
+        const favorite = {
+            "modal": `<div class="modal2 favorites-modal" data-external-id="{{ catalogVO.externalIdDescription }}" data-previous-catalog-id="{{ catalogVO.previousCatalogId }}"><div class="modal-content">
+                        <div style="text-align:center;" class="modal-header"><span class="close">&times;</span><span class="modalTitle">Configurar Favoritos</span></div>
+                        <div class="modal-body"><div class="favorite-subtitle"><span class="modalSubtitle">Opções disponíveis</span>
+                        <div class="favorite-catalogo" id="catalogo">{{#unfavoriteItems}}<div class="options favorite-item selectableDiv" data-id="{{ catalogId }}" data-tag="{{ hdPlatformValueExternalId }}" style="-webkit-user-select: initial;">{{ value }}</div>{{/unfavoriteItems}}</div>
+                        <button class="favorite-option" id="btn-add-favorite">
+                        <img src="https://theme.zdassets.com/theme_assets/888110/5e057e0493c7e8a07aa0f5eca9e0fca8a2c2e366.svg" />
+                        </button></div>
+                        <div class="favorite-subtitle"><span class="modalSubtitle">Opções favoritas</span>
+                        <div id="myfavoritos" class="favorite-catalogo">{{#catalogVO.favoriteFieldVO.favorites}}<div class="options favorite-item selectableDiv" data-id="{{ catalogId }}" data-tag="{{ hdPlatformValueExternalId }}" style="-webkit-user-select: initial;">{{ value }}</div>{{/catalogVO.favoriteFieldVO.favorites}}</div>
+                        <button class="favorite-option" id="btn-remove-favorite">
+                        <img src="https://theme.zdassets.com/theme_assets/888110/9c2595e906e2289ed7fe64ce61c5c850dba7ffaf.svg" />
+                        </div><div style="text-align:center;"></div></div>
+                        <div class="modal-footer"><button id="btn-salvar-favoritos" class="saveBtn">Salvar</button></div></div></div></div>`
+        };
+        const { catalogVO } = $(parentElement).data();
+        const unfavoriteItems = catalogVO.favoriteFieldVO.favorites.length ? catalogVO.favoriteFieldVO.unfavorites : catalogVO.responseValues;
+        const modalData = { unfavoriteItems, catalogVO };
+        const template = Handlebars.compile(favorite.modal);
+        const html = template(modalData);
+        $(".modal-favoritos").html(html);
+        $('.modal2').css("display", "block");
+    }
+    saveFavorites(favoritesToSave) {
+        const self = this;
+        self.catalogUtils.showLoading();
+        self.catalogUtils.request({
+            type: 'POST',
+            urlSuffix: `userFavoriteCatalogsFields/`,
+            data: JSON.stringify(favoritesToSave)
+        }).then(response => {
+            self.favorites = response;
+            this.updateFavoriteFieldVO();
+            $(".modal-header").find(".close").trigger('click');
+        }).catch(error => {
+            console.error(`Erro ao salvar campos favoritos ${error}`);
+            showAlert("Erro ao salvar os favoritos! Por favor tente mais tarde.");
+        }).finally(() => {
+            self.catalogUtils.removeLoading();
+        });
+    }
+    updateFavoriteFieldVO() {
+        const { externalId } = $(".favorites-modal").data();
+        const selectGroup = $(`#cat-totvs-select-group-${externalId}`);
+        const { catalogVO } = $(selectGroup).data();
+        catalogVO.favoriteFieldVO = this.getFavoriteFieldsFromResponseValue(catalogVO.responseValues, catalogVO.previousCatalogId);
+        $(selectGroup)
+            .data('catalogVO', catalogVO)
+            .data('hasUpdatedFavorites', true);
+    }
+    getFavoriteFieldsFromResponseValue(optionValues, previousCatalogId) {
+        const favoritesVO = { favorites: [], unfavorites: [] };
+        const favorites = this.favorites.filter(userFavorite => (userFavorite.previousCatalog.id == previousCatalogId));
+        if (previousCatalogId && favorites.length) {
+            optionValues.forEach(responseValue => {
+                const isFieldFavorite = favorites.find(userFavorite => userFavorite.catalog.catalogFieldValues.tag == responseValue.tag);
+                isFieldFavorite ? favoritesVO.favorites.push(responseValue) : favoritesVO.unfavorites.push(responseValue);
+            });
+        }
+        return favoritesVO;
+    }
+}
+class CatalogUtils {
+    constructor() {
+        this.SEVEN_LEVEL_FIELD_TYPE_KEY = 'nivel_7';
+        this.WAIT_FOR_SESSION_DATA_LOAD_IN_MILLISECS = 200;
+        this.conditionalFields = $('[data-conditional-fields]').data('conditionalFields');
+    }
+    request(options) {
+        const { type, data, urlSuffix } = options;
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                type,
+                contentType: "application/json",
+                dataType: "json",
+                Accept: "application/json",
+                url: `${CATALOGPATH}${urlSuffix}`,
+                data
+            })
+                .done(resolve)
+                .fail(reject);
+        });
+    }
+    setupSelect2(externalId) {
+        $(`#cat-totvs-select-${externalId}`)
+            .select2({
+            placeholder: "-",
+            theme: "bootstrap"
+        });
+        this.onFavoritesChangedRefreshSelect2Options(externalId);
+        this.onSelectRemoveHasUpdatedFavoritesData(externalId);
+        $(`#cat-totvs-select-group-${externalId} .select2`).css({ "display": "inline-block", "position": "static" });
+        $(`#cat-totvs-select-${externalId}`).on('select2:close', function () {
+            window.dispatchEvent(new CustomEvent('catalog-select2:close', { detail: `cat-totvs-select-${externalId}` }));
+        });
+        this.removeLoading();
+    }
+    onFavoritesChangedRefreshSelect2Options(externalId) {
+        $(`#cat-totvs-select-${externalId}`).on('select2:open', () => {
+            if ($(`#cat-totvs-select-group-${externalId}`).data('hasUpdatedFavorites')) {
+                const { catalogVO } = $(`#cat-totvs-select-group-${externalId}`).data();
+                $('.select2-dropdown--above').attr('id', 'fix');
+                $('#fix').removeClass('select2-dropdown--above');
+                $('#fix').addClass('select2-dropdown--below');
+                this.refreshSelect2Options(catalogVO, $(`#cat-totvs-select-${externalId}`));
+                this.removeAllSelectChildren(externalId);
+            }
+        });
+    }
+    onSelectRemoveHasUpdatedFavoritesData(externalId) {
+        $(`#cat-totvs-select-${externalId}`).on('select2:select', () => {
+            $(`#cat-totvs-select-group-${externalId}`).data('hasUpdatedFavorites', false);
+        });
+    }
+    removeAllSelectChildren(externalId) {
+        if (externalId) {
+            const nextCatalogFieldsToRemove = $(`#cat-totvs-select-group-${externalId}`).nextAll();
+            nextCatalogFieldsToRemove.each((index, el) => {
+                var _a;
+                const { catalogVO } = $(el).data();
+                if ((_a = catalogVO === null || catalogVO === void 0 ? void 0 : catalogVO.conditionals) === null || _a === void 0 ? void 0 : _a.length) {
+                    catalogVO.conditionals.forEach((conditional) => {
+                        new ZendeskNativeConditionalsResolver().hideConditionalChildrenFields(conditional);
+                    });
+                }
+            });
+            nextCatalogFieldsToRemove.remove();
+        }
+    }
+    refreshSelect2Options(catalogVO, element) {
+        const values = catalogVO.getSelectOptionsValues();
+        element.select2('data', values);
+        var $select = $(element[0]);
+        var options = values.map((item) => {
+            return `<option value="${this.getOptionsValue(catalogVO, item)}" catalogId="${item.catalogId}" countryTag="${item.countryTag}">  ${item.value} </option>`;
+        });
+        $select.html("<option></option><option value='-'>-</option>" + options.join(''));
+    }
+    getOptionsValue(catalogVO, item) {
+        const isSevenLevelField = catalogVO.fieldTypeKey == this.SEVEN_LEVEL_FIELD_TYPE_KEY;
+        return isSevenLevelField ? item.valuePtBr.trim() : item.tag;
+    }
+    showLoading() {
+        hcLoading();
+    }
+    removeLoading() {
+        hcLoading('stop');
+    }
+    getLanguage() {
+        return $("html").attr("lang").replace('-', '').toLowerCase();
+    }
+    parseResponse(catalogBuider, catalogResponse) {
+        var _a;
+        const catalogVO = {};
+        const isVisibleToEndUser = catalogResponse.type.isVisibleToEndUser;
+        const isRequired = catalogResponse.type.isRequired;
+        catalogVO.fieldDescription = catalogResponse.type.helpDescription || '';
+        catalogVO.isVisibleToEndUser = isVisibleToEndUser;
+        catalogVO.externalId = catalogResponse.type.hdPlatform.externalId;
+        catalogVO.label = catalogResponse.type.formLabel || catalogResponse.type.description;
+        catalogVO.labelRequired = isRequired ? '<b style="color: #f00; margin-left: 2px;">*</b>' : '';
+        catalogVO.required = isRequired ? "required" : "";
+        catalogVO.selected = isVisibleToEndUser ? '' : " selected ";
+        catalogVO.displayNone = isVisibleToEndUser ? '' : ' style="display: none" ';
+        catalogVO.externalIdAttr = catalogVO.externalId ? "has-external-id" : "empty-external-id";
+        catalogVO.externalIdDescription = catalogVO.externalId || catalogResponse.type.fieldTypeKey;
+        catalogVO.responseValues = catalogBuider.isFirstInteraction ? catalogBuider.getFirstInteractionValues(catalogResponse.values) : catalogResponse.values;
+        catalogVO.formId = catalogBuider.formId;
+        catalogVO.fieldTypeKey = catalogResponse.type.fieldTypeKey;
+        catalogVO.previousCatalogId = $(".cat-select option:selected").last().attr('catalogid');
+        catalogVO.conditionals = (_a = this.conditionalFields) === null || _a === void 0 ? void 0 : _a.filter((conditional) => conditional.parent_field_id.includes(catalogVO.externalId));
+        this.fillFavoriteFieldVO(catalogVO, catalogBuider);
+        this.fillSelectOptionsValues(catalogVO);
+        return catalogVO;
+    }
+    fillFavoriteFieldVO(catalogVO, catalogBuider) {
+        catalogVO.favoriteFieldVO = catalogBuider.favoriteCatalogBuilder.getFavoriteFieldsFromResponseValue(catalogVO.responseValues, catalogVO.previousCatalogId);
+    }
+    fillSelectOptionsValues(catalogVO) {
+        catalogVO.getSelectOptionsValues = () => catalogVO.favoriteFieldVO.favorites.length ? catalogVO.favoriteFieldVO.favorites : catalogVO.responseValues;
+    }
+    async onSessionDataReady() {
+        var _a;
+        const sessionData = DADOS_SESSAO;
+        while (!((_a = sessionData.organizations) === null || _a === void 0 ? void 0 : _a.length)) {
+            await new Promise(resolve => setTimeout(resolve, this.WAIT_FOR_SESSION_DATA_LOAD_IN_MILLISECS));
+        }
+        return sessionData;
+    }
+    async getActualOrganization() {
+        const sessionData = await this.onSessionDataReady();
+        return $('#request_organization_id').val() || sessionData.active_organization.id;
+    }
+}
+class ZendeskNativeConditionalsResolver {
+    registerConditionalFieldsListener(selected, externalId) {
+        var _a;
+        const { catalogVO } = $(`#cat-totvs-select-group-${externalId}`).data();
+        if ((_a = catalogVO.conditionals) === null || _a === void 0 ? void 0 : _a.length) {
+            this.resolveConditionalField(catalogVO.conditionals, selected);
+        }
+    }
+    resolveConditionalField(conditionals, selected) {
+        conditionals.every((conditional) => {
+            if (conditional.value == selected.value) {
+                this.showConditionalChildrenFields(conditional);
+                return false;
+            }
+            else {
+                this.hideConditionalChildrenFields(conditional);
+                return true;
+            }
+        });
+    }
+    showConditionalChildrenFields(conditional) {
+        conditional.child_fields.forEach((children) => {
+            $(`#${children.id}`).removeAttr('disabled');
+            $(`.${children.id}`).removeAttr('hidden').attr('parent-id', conditional.parent_field_id).insertAfter('.catalog-form').show();
+            if (children.is_required) {
+                $(`.${children.id}`).removeClass('optional').addClass('required');
+            }
+        });
+    }
+    hideConditionalChildrenFields(conditional) {
+        conditional.child_fields.forEach((children) => {
+            const childElementByClass = $(`.${children.id}`);
+            if (childElementByClass.attr('parent-id') == conditional.parent_field_id) {
+                $(`#${children.id}`).attr('disabled', 'true');
+                childElementByClass.attr('hidden', '').attr('parent-id', '').insertBefore('.catalog-form').hide();
+                if (children.is_required) {
+                    $(`.${children.id}`).removeClass('required').addClass('optional');
+                }
+            }
+        });
+    }
+}

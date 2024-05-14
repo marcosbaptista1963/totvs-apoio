@@ -1,0 +1,23 @@
+[12:35] Juliano Barbosa Ribeiro
+
+
+
+
+DISABLE TRIGGERS FOR DUMP OF usuar_mestre.
+DISABLE TRIGGERS FOR LOAD OF usuar_mestre.
+for each usuar_mestre where usuar_mestre.cod_usuario = "super":
+update usuar_mestre with 1 col width 600.
+
+
+SENHA = super
+
+hFG6ihTXl1PTTLM7UbpGtLAl64E=
+
+
+qoW99/ESLFpxziTHc+/KfkMCgGg=
+
+
+8280
+bvbM0oXEMs1U7yUOZ31uvQbDcts=
+
+validade 21/10/2023

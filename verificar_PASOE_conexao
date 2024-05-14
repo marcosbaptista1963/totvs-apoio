@@ -1,0 +1,7 @@
+DEFINE VARIABLE AppHandle AS HANDLE.
+DEFINE VARIABLE system-path AS CHARACTER.
+DEFINE VARIABLE ret AS LOGICAL.
+CREATE SERVER AppHandle.
+ret = AppHandle:CONNECT("-URL http://localhost:9001/apsv -sessionModel Session-managed").
+IF ret THEN DISPLAY "Connected".
+ELSE DISPLAY "Connection failed".

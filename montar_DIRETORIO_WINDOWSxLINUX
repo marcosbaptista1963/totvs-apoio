@@ -1,0 +1,18 @@
+#!/bin/bash
+
+timestamp(){
+    date +'%y/%m/%d %H:%M:%S'
+}
+
+echo "$(timestamp): >>>>>>>>INICIANDO PROCESSO DE BACKUP"
+echo ">>>>>>>>MONTANDO PASTAS DE REDE DO STORAGE"
+if mountpoint -q /media/bkp-progress
+then
+     echo ">>>>>>>PASTA JA ESTAVA MONTADA"
+else
+    mount -t cifs -o username=administrator,password=#1nd0m1nu$,domain=cortag //192.168.4.200/bkp_ti/bkp-datasul /media/bkp-progress
+fi
+echo ">>>>>>>>GERANDO BACKUPS DOS BANCOS PROGRESS"
+echo ">>>>>>>>>>COPIANDO ARQUIVOS PARA O STORAGE"
+cp -R /database/backup_producao/*.bkp /media/bkp-progress/
+echo "$(timestamp): >>>>>>>>>>BACKUP FINALIZADO"

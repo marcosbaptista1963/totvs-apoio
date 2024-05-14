@@ -1,0 +1,109 @@
+// Autor: Rodrigo Sombrio
+// Arquivo migrado para o public/javascript/script.js no middleware do CST
+
+/*var root = null;
+var useHash = true; // Defaults to: false
+var hash = '#'; // Defaults to: '#'
+
+var navigateTo = function(code) {
+	console.log(html);
+	console.log(zendesk);
+	carregaTemplate(code, function (templateHtml) {
+		$('body').hide();
+		$('body').scrollTop(0);
+		currentConteudo = template;
+		$(document).ready(function () {
+			if (!RedirectUserToLogin()) {
+				$('#cst-conteudo').html(templateHtml);
+				$('body').show();
+			}
+		});
+	});
+}
+
+var router = new Navigo(root, useHash, hash);
+router.on({
+	'home': function () { navigateTo('home'); },
+	'autoatendimento': function () { navigateTo('autoatendimento'); },
+	'liberacaoacesso': function () { navigateTo('liberacao_acesso'); },
+	'liberacaoacessoemergencial': function () { navigateTo('acesso_emergencial'); },
+	'informacoescadastro': function () { navigateTo('informacoes_cadastro'); },
+	'suportetecnico': function () { navigateTo('suporte_tecnico'); },
+	'comopodemosajudar': function () { navigateTo('como_podemos_ajudar'); },
+	'aberturachamado': function () { navigateTo('abertura_chamado'); },
+	'visao_cliente': function () { navigateTo('visao_cliente'); },
+	'contatos': function () { navigateTo('contatos'); },
+	'gerenciador_solicitacoes': function () { navigateTo('gerenciador_solicitacoes'); },
+
+	//contrato
+	'transferenciafaturamento': function () { navigateTo('transferencia_faturamento'); },
+	'consultacontrato': function () { navigateTo('consulta_contrato'); },
+	'consultacontratocorporativo': function () { navigateTo('consulta_contrato_corporativo'); },
+	'memoriacalculocomprovacao': function () { navigateTo('memoria_calculo_comprovacao'); },
+	'memoriacalculoinforme': function () { navigateTo('memoria_calculo_informe'); },
+	'informemetrica': function () { navigateTo('informe_metrica'); },
+	'comprovacaometrica': function () { navigateTo('comprovacao_metrica'); },
+
+	//financeiro
+	'fichafaturamento': function () { navigateTo('ficha_faturamento'); },
+	'atualizacaoboleto': function () { navigateTo('atualizacao_boleto_vencido'); },
+	'consultaimpressao': function () { navigateTo('consulta_impressao'); },
+	'consultapendencias': function () { navigateTo('consulta_pendencias'); },
+
+	//visualizacao de documento
+	'visualizadocumento': function () { navigateTo('visualiza_documento'); },
+
+	//minhas solicitações
+	'solicitacoes': function () { navigateTo('solicitacoes'); },
+	'solicitacoes/emcopia': function () { navigateTo('solicitacoes'); },
+	'solicitacoes/organizacoes': function () { navigateTo('solicitacoes'); },
+	'meuperfil': function () { navigateTo('meu_perfil'); },
+
+	//resultados da pesquisa
+	'search': function () { navigateTo('busca'); },
+
+}).resolve();
+
+
+function carregaTemplate(templateNome, cb) {
+	if (!templateNome) templateNome = "autoatendimento";
+	var lang = getCurrentIdioma() || '';
+	lang = lang.replace(/\\/g, '');
+	var data = { "template": templateNome, "lang": lang };
+	var stringifiedData = JSON.stringify(data);
+
+	$.ajax({
+		"url": MIDWAREPATH + "/TEMPLATES",
+		"type": "POST",
+		"contentType": "application/json",
+		"data": stringifiedData,
+		"dataType": "html",
+		"success": function (response) {
+			if (cb) cb(response);
+
+		},
+		"error": function (jqXHR, textStatus, errorThrown) {
+			console.log("Erro ao carregar template: " + templateNome);
+			console.log(textStatus, errorThrown);
+		}
+	})
+}
+
+
+function getCurrentIdioma() {
+	var currentUrl = window.location.href;
+	var part1 = currentUrl.indexOf('/hc/') + 4;
+	var part2 = currentUrl.indexOf('#');
+	var currentLang = 'pt-br';
+	//var currentLang = part2 > 0 ? currentUrl.slice(part1, part2) : currentUrl.slice(part1);
+
+	if (currentUrl.toLowerCase().indexOf('/hc/pt-br') > 0)
+		currentLang = 'pt-br';
+	else if (currentUrl.toLowerCase().indexOf('/hc/en-us') > 0)
+		currentLang = 'en-us';
+	else if (currentUrl.toLowerCase().indexOf('/hc/es') > 0)
+		currentLang = 'es';
+
+	return currentLang;
+}
+*/

@@ -1,0 +1,17 @@
+    DLC="/usr/dlc12"
+    WRKDIR="/usr/wrk12"
+    OEM="/usr/oemgmt12"
+    OEMWRKDIR="/usr/wrk_oemgmt12"
+    PATH=$DLC/bin:$DLC/perl/bin:$PATH
+    PS1="proenv>"
+    OPENSSL_CONF=$DLC/keys/policy/pscpki.cnf
+   export DLC WRKDIR PATH PS1 OEM OEMWRKDIR OEE OEEWRKDIR OPENSSL_CONF
+   
+   
+   ----------------------------------------------------------------------------
+   
+   export DLC=/usr/dlc12
+   export OLDPATH=$PATH
+   export PATH=$DLC:$DLC/bin:
+   $PATH
+

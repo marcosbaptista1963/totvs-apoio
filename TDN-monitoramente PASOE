@@ -1,0 +1,37 @@
+Framework - Linha Datasul - TEC - Como habilitar o gerenciamento e monitoramento da instância PASOE
+
+
+
+
+sh /datasul/PASOE/teste/totvs-brk-001/bin/tcman.sh stop
+
+# echo ----------------------------------
+# echo -------- appserver PASOE
+# echo ----------------------------------
+#
+# $DLC/bin/asbman -i totvs-brk-001 -stop
+$DIR_PASOE/bin/tcman.sh stop
+#
+# echo ----------------------------------
+# echo -------- appserver PASOE
+# echo ----------------------------------
+#
+# $DLC/bin/asbman -i totvs-brk-001 -stop
+$DIR_PASOE/bin/tcman.sh stop
+#
+
+
+PARA SUBIR E PARAR O BROKER PASOE DE MODO LINHA DE COMANDO
+
+NO appserver usavamos o comando asbman (CORRETO)
+
+No PASOE
+
+Ir no diretorio que foi criado a instancia 
+
+sh /local_criação_instancia/bin/tcman stop (PARAR A INSTANCIA)
+
+sh /local_criação_instancia/bin/tcman start (INICIAR A INSTANCIA)
+
+NO stop e start não precisa colocar -
+

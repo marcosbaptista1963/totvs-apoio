@@ -1,0 +1,15 @@
+O arquivo AI está corrompido.
+Nenhum arquivo AI deve ter tamanho 0.
+Resolução
+As seguintes etapas devem ser usadas para corrigir o problema:
+
+ 
+Faça backup de todos os arquivos do banco de dados.
+Copie uma extensão ai vazia ou menor para substituir a extensão ai relatada na mensagem 4524.
+Exemplo se .a5 tivesse comprimento 0:
+renomeie .a5 para dbname.a5.old
+copie nome do banco de dados.a4 para nome do banco de dados.a5
+rfutil <nome do banco de dados> -C aimage end
+probkup <nome do banco de dados> <arquivo ou dispositivo de backup>
+rfutil <nome do banco de dados> -C aimage começar
+Reinicie o banco de dados

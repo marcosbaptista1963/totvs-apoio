@@ -1,0 +1,56 @@
+[07:44] José Olavo de Melo Júnior
+Bom dia!
+
+[07:44] José Olavo de Melo Júnior
+Bom dia,
+Marcão.Desculpas por não ter respondido ontem, o Cleber me colocou em uma reunião que foi até as 18:30.Mas, vamos lá.comando:1- mude para o diretorio do banco.
+exemplo:srv05lnx23:~ # cdb emstst
+srv05lnx23:/dbtotvs/totvsemstst/database2 - use o camando ps assim para ver as portas 4GL e SQL dos bancos.srv05lnx23:/dbtotvs/totvsemstst/database # ps -ef | grep S4GL *.CFG
+comtrp.CFG::S4GL:38621
+eai.CFG::S4GL:38600
+eai2.CFG::S4GL:38623
+ems2adm.CFG::S4GL:38601
+ems2cex.CFG::S4GL:38602
+ems2dis.CFG::S4GL:38603
+ems2eai.CFG::S4GL:38604
+ems2esp.CFG::S4GL:38605
+ems2fis.CFG::S4GL:38606
+ems2ind.CFG::S4GL:38607
+ems2mnt.CFG::S4GL:38608
+ems2sat.CFG::S4GL:38609
+ems2sef.CFG::S4GL:38610
+ems2sisif.CFG::S4GL:38611
+ems2sor.CFG::S4GL:38636
+ems2trp.CFG::S4GL:38620
+ems2uni.CFG::S4GL:38612
+ems5mov.CFG::S4GL:40625
+emsbas.CFG::S4GL:39600
+
+srv05lnx23:/dbtotvs/totvsemstst/database # ps -ef | grep SSQL *.CFG
+comtrp.CFG::SSQL:38721
+eai.CFG::SSQL:38700
+eai2.CFG::SSQL:38723
+ems2adm.CFG::SSQL:38701
+ems2cex.CFG::SSQL:38702
+ems2dis.CFG::SSQL:38703
+ems2eai.CFG::SSQL:38704
+ems2esp.CFG::SSQL:38705
+ems2fis.CFG::SSQL:38706
+ems2ind.CFG::SSQL:38707
+ems2mnt.CFG::SSQL:38708
+ems2sat.CFG::SSQL:38709
+ems2sef.CFG::SSQL:38710
+ems2sisif.CFG::SSQL:38711
+ems2sor.CFG::SSQL:38736
+ems2trp.CFG::SSQL:38720
+ems2uni.CFG::SSQL:38712
+ems5mov.CFG::SSQL:40725
+emsbas.CFG::SSQL:39700
+
+Resumindo:
+1 - cdb emstst
+2- ps -ef | grep S4GL *.CFG
+2- ps -ef | grep SSQL *.CFG
+
+
+

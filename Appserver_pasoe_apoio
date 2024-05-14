@@ -1,0 +1,51 @@
+echo ----------------------------------
+echo -------- appserver PASOE
+echo ----------------------------------
+
+DIR_PASOE=/datasul/PASOE/teste/totvs-brk-001
+
+$DIR_PROGRESS/startup.sh
+$DLC/bin/proadsv -start
+$DIR_PASOE/bin/tcman.sh start
+[root@garajuba oxipira]#
+
+-------------------------------------------------------------------------
+
+echo ----------------------------------
+echo -------- appserver PASOE
+echo ----------------------------------
+
+DIR_PASOE=/datasul/PASOE/teste/totvs-brk-001
+  
+$DIR_PASOE/bin/shutdown.sh
+$DLC/bin/proadsv -stop
+$DIR_PROGRESS/bin/shutdown.sh
+
+--------------------------------------------------------------------------
+
+Verificar as Intance que esta criada
+
+pasman instances
+
+[root@localhost marcos]# pasman instances
+marcos_teste | /totvs/PASOE/marcos_teste | instance | ok
+
+--------------------------------------------------------------------------
+
+Para parar somente o broker pela linha de comando
+
+1. Ir aonde foi criado o broker
+# pasman instances  ====================> mostra o local da instalação
+
+[root@localhost marcos]# pasman instances
+marcos_teste | /totvs/PASOE/marcos_teste | instance | ok
+
+2. Ir para o diretorio = /totvs/PASOE/marcos_teste/bin
+
+PARAR = shutdown.sh
+SUBIR = startup.sh
+
+
+
+
+
